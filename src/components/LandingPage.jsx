@@ -53,7 +53,7 @@ const IMPACT_STATS = [
   },
 ];
 
-export default function LandingPage({ onLaunch }) {
+export default function LandingPage({ onLaunch, onLaunchHUD }) {
   const scrollTo = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -87,8 +87,8 @@ export default function LandingPage({ onLaunch }) {
             <button className="btn-primary-large" onClick={onLaunch}>
               Start Simulation <ArrowRight size={20} />
             </button>
-            <button className="btn-secondary-large" onClick={() => scrollTo('impact-section')}>
-              See the Impact
+            <button className="btn-secondary-large" style={{background: '#1E293B', color: '#38BDF8', borderColor: '#0284C7'}} onClick={onLaunchHUD}>
+              Enter Responder HUD
             </button>
           </div>
         </div>

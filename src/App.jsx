@@ -7,6 +7,7 @@ import MapVisualizer from './components/MapVisualizer';
 import LandingPage from './components/LandingPage';
 import AdminStats from './components/AdminStats';
 import LiveLogs from './components/LiveLogs';
+import AmbulanceNavigator from './components/AmbulanceNavigator';
 import { Activity } from 'lucide-react';
 import { io } from 'socket.io-client';
 
@@ -17,11 +18,19 @@ function App() {
   const [status, setStatus] = useState('idle');
   const [ambulancePos, setAmbulancePos] = useState({ x: '20%', y: '80%' });
   const [eta, setEta] = useState('--');
+  const [routeInfo, setRouteInfo] = useState(null);
 
   useEffect(() => {
     // Socket Listeners
     socket.on('new_sos', (data) => console.log('🟢 [Socket] New Emergency Broadcast:', data));
-    socket.on('green_corridor_active', (data) => console.log('🟢 [Socket] Green Corridor Active:', data));
+    socket.on('green_corridor_active', (data) => {
+       console.log('🟢 [Socket] Green Corridor Active:', data);
+       setRouteInfo(data.routeInfo);
+       // Override ETA with Google Maps real ETA
+       if (data.routeInfo && data.routeInfo.etaMinutes) {
+         setEta(data.routeInfo.etaMinutes.toString().padStart(2, '0'));
+       }
+    });
     socket.on('ambulance_location_update', (data) => console.log('🟢 [Socket] Ambulance moving:', data));
 
     let timeoutId;
@@ -99,10 +108,15 @@ function App() {
     setStatus('idle');
     setAmbulancePos({ x: '20%', y: '80%' });
     setEta('--');
+    setRouteInfo(null);
   };
 
   if (view === 'landing') {
-    return <LandingPage onLaunch={() => setView('dashboard')} />;
+    return <LandingPage onLaunch={() => setView('dashboard')} onLaunchHUD={() => setView('navigator')} />;
+  }
+
+  if (view === 'navigator') {
+    return <AmbulanceNavigator onExit={() => setView('landing')} />;
   }
 
   return (
@@ -129,8 +143,22 @@ function App() {
           <StatusTimeline status={status} />
         </aside>
 
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <MapVisualizer status={status} ambulancePos={ambulancePos} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div>
+            <MapVisualizer status={status} ambulancePos={ambulancePos} />
+            {routeInfo && (
+              <div className="glass-panel" style={{ marginTop: '1rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--primary-accent)' }}>
+                <h4 style={{ color: 'var(--primary-accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Google_Maps_Logo_2020.svg" alt="Google Maps" style={{width: '20px'}}/>
+                  Live Maps API Route Data
+                </h4>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                  <span><strong>Distance:</strong> {routeInfo.distance} </span>
+                  <span><strong>Optimized ETA:</strong> {routeInfo.etaMinutes} mins </span>
+                </div>
+              </div>
+            )}
+          </div>
           <AdminStats />
         </div>
 

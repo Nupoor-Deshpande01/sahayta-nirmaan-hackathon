@@ -36,8 +36,10 @@ app.use('/api/sos', require('./routes/sosRoutes'));
 app.use('/api/hospitals', require('./routes/hospitalRoutes'));
 app.use('/api/ambulances', require('./routes/ambulanceRoutes'));
 app.use('/api/corridor', require('./routes/corridorRoutes'));
+app.use('/api/traffic', require('./routes/corridorRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/v1/dispatch', require('./routes/dispatchRoutes'));
 
 // Socket.io connection
 io.on('connection', (socket) => {
