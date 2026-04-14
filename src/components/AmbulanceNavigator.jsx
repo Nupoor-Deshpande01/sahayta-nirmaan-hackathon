@@ -21,6 +21,18 @@ export default function AmbulanceNavigator({ onExit }) {
   const [center, setCenter] = useState({ lat: 18.6298, lng: 73.7997 }); // Mock start
   const [directions, setDirections] = useState(null);
   const [pingStatus, setPingStatus] = useState('');
+  
+  // Simulated IoT Telemetry
+  const [vitals, setVitals] = useState({ hr: 142, spo2: 94 });
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setVitals(prev => ({
+        hr: Math.max(100, Math.min(160, prev.hr + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 4))),
+        spo2: Math.max(88, Math.min(96, prev.spo2 + (Math.random() > 0.4 ? 0 : -1)))
+      }));
+    }, 1500);
+    return () => clearInterval(interval);
+  }, []);
 
   // 1. Simulate real-time tracking (watchPosition)
   useEffect(() => {
@@ -109,14 +121,14 @@ export default function AmbulanceNavigator({ onExit }) {
 
         {/* MOCK PRE-ARRIVAL VITALS */}
         <div style={{ padding: '1rem', background: 'rgba(5, 150, 105, 0.1)', borderRadius: '0.5rem', marginTop: '1rem', border: '1px solid rgba(5, 150, 105, 0.3)' }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10B981' }}><Activity size={18}/> Pre-Arrival Vitals</h4>
+          <h4 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10B981' }}><Activity size={18}/> Simulated Apple Watch Telemetry</h4>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
             <span style={{color: '#94A3B8', fontSize: '0.9rem'}}>Heart Rate</span>
-            <span style={{fontWeight: 'bold', color: '#EF4444'}}>142 BPM</span>
+            <span style={{fontWeight: 'bold', color: '#EF4444'}}>{vitals.hr} BPM</span>
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span style={{color: '#94A3B8', fontSize: '0.9rem'}}>SpO2</span>
-            <span style={{fontWeight: 'bold'}}>94%</span>
+            <span style={{fontWeight: 'bold', color: vitals.spo2 < 92 ? '#EF4444' : '#fff'}}>{vitals.spo2}%</span>
           </div>
         </div>
 

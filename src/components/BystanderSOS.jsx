@@ -1,11 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Camera, MapPin, AlertCircle, PhoneCall, Bot } from 'lucide-react';
+import { Camera, MapPin, AlertCircle, PhoneCall, Bot, Building2 } from 'lucide-react';
+import { useJsApiLoader } from '@react-google-maps/api';
+
+const libraries = ['places'];
 
 export default function BystanderSOS({ onExit }) {
   const [step, setStep] = useState('idle'); // idle -> locating -> connected
   const [location, setLocation] = useState(null);
   const [chatLog, setChatLog] = useState([]);
+  const [nearbyHospitals, setNearbyHospitals] = useState([]);
   const videoRef = useRef(null);
+
+  const { isLoaded } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY || 'MOCK_KEY', libraries });
 
   const startEmergency = () => {
     setStep('locating');
@@ -30,6 +36,30 @@ export default function BystanderSOS({ onExit }) {
           }
         } catch (e) {
           setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        }
+
+        // Fetch Nearby Hospitals
+        if (isLoaded && window.google) {
+          const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+          service.nearbySearch(
+            { location: { lat: latitude, lng: longitude }, radius: 10000, type: 'hospital' },
+            (results, status) => {
+              if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
+                const top3 = results.slice(0, 3);
+                let completed = 0;
+                const hospitalsWithDetails = [];
+                top3.forEach((hosp) => {
+                  service.getDetails({ placeId: hosp.place_id, fields: ['name', 'formatted_phone_number', 'vicinity'] }, (details, detStatus) => {
+                    completed++;
+                    if (detStatus === window.google.maps.places.PlacesServiceStatus.OK && details) {
+                      hospitalsWithDetails.push(details);
+                    }
+                    if (completed === top3.length) setNearbyHospitals(hospitalsWithDetails);
+                  });
+                });
+              }
+            }
+          );
         }
 
         startVideoAndAI();
@@ -67,7 +97,7 @@ export default function BystanderSOS({ onExit }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', color: '#fff', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: '#0F172A', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <header style={{ padding: '1rem', background: '#EF4444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1 style={{ margin: 0, fontSize: '1.2rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <AlertCircle /> SOS MODE
@@ -94,9 +124,9 @@ export default function BystanderSOS({ onExit }) {
       )}
 
       {step === 'connected' && (
-        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-          {/* CAMERA FEED */}
-          <div style={{ position: 'relative', height: '40vh', background: '#000', overflow: 'hidden' }}>
+        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', height: '0px' }}>
+          
+          <div style={{ position: 'relative', height: '35vh', background: '#000', flexShrink: 0, overflow: 'hidden' }}>
             <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.5)', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.8rem', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
               <Camera size={14} color="#10B981"/> Trauma Scanner Active
@@ -109,20 +139,45 @@ export default function BystanderSOS({ onExit }) {
             <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', border: '2px solid rgba(16, 185, 129, 0.5)', width: '60%', height: '60%', borderRadius: '1rem', backgroundImage: 'linear-gradient(transparent 50%, rgba(16, 185, 129, 0.1) 50%)', backgroundSize: '100% 4px' }} className="scanner-line"></div>
           </div>
 
-          {/* CHATBOT */}
-          <div style={{ flexGrow: 1, background: '#1E293B', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ flexGrow: 1, padding: '1rem', overflowY: 'auto' }}>
-              {chatLog.map((c, i) => (
-                <div key={i} style={{ marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
-                  <div style={{ background: '#3B82F6', borderRadius: '50%', padding: '0.4rem', flexShrink: 0 }}><Bot size={18} /></div>
-                  <div style={{ background: '#334155', padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.95rem' }}>{c.text}</div>
+          {/* Dynamic Content Panel Area */}
+          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+            
+            {/* NEARBY HOSPITALS PANEL */}
+            {nearbyHospitals.length > 0 && (
+              <div style={{ background: '#1E293B', padding: '1rem', borderBottom: '1px solid #334155', flexShrink: 0 }}>
+                <h3 style={{ margin: '0 0 0.5rem 0', fontSize: '1rem', color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Building2 size={16} /> Nearest Emergency Contacts
+                </h3>
+                <div style={{ display: 'flex', overflowX: 'auto', gap: '0.5rem', paddingBottom: '0.5rem' }}>
+                  {nearbyHospitals.map((h, i) => (
+                    <div key={i} style={{ minWidth: '220px', background: '#0F172A', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
+                      <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', fontSize: '0.85rem' }}>{h.name}</p>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.vicinity}</p>
+                      <a href={`tel:${h.formatted_phone_number}`} style={{ background: '#10B981', color: '#fff', padding: '0.35rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold' }}>
+                        <PhoneCall size={12} /> {h.formatted_phone_number || 'Call Hospital'}
+                      </a>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            )}
+
+            {/* CHATBOT */}
+            <div style={{ flexGrow: 1, background: '#0F172A', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ flexGrow: 1, padding: '1rem', overflowY: 'auto' }}>
+                {chatLog.map((c, i) => (
+                  <div key={i} style={{ marginBottom: '1rem', display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <div style={{ background: '#3B82F6', borderRadius: '50%', padding: '0.4rem', flexShrink: 0 }}><Bot size={18} color="#fff" /></div>
+                    <div style={{ background: '#334155', padding: '0.75rem', borderRadius: '0.5rem', fontSize: '0.95rem', lineHeight: '1.4' }}>{c.text}</div>
+                  </div>
+                ))}
+              </div>
+              <div style={{ padding: '1rem', borderTop: '1px solid #334155', display: 'flex', gap: '0.5rem', background: '#1E293B', flexShrink: 0 }}>
+                <input type="text" placeholder="Type to interact with AI..." style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #475569', background: '#0F172A', color: '#fff' }} disabled/>
+                <button style={{ background: '#3B82F6', border: 'none', color: '#fff', padding: '0 1rem', borderRadius: '0.5rem', fontWeight: 'bold', cursor: 'not-allowed' }}>Send</button>
+              </div>
             </div>
-            <div style={{ padding: '1rem', borderTop: '1px solid #334155', display: 'flex', gap: '0.5rem' }}>
-              <input type="text" placeholder="Type to interact with AI..." style={{ flexGrow: 1, padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #475569', background: '#0F172A', color: '#fff' }} disabled/>
-              <button style={{ background: '#3B82F6', border: 'none', color: '#fff', padding: '0 1rem', borderRadius: '0.5rem' }}>Send</button>
-            </div>
+            
           </div>
         </div>
       )}

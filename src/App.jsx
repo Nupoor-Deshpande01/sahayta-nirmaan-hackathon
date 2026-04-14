@@ -3,7 +3,7 @@ import './App.css';
 import ControlPanel from './components/ControlPanel';
 import StatusTimeline from './components/StatusTimeline';
 import HospitalDashboard from './components/HospitalDashboard';
-import MapVisualizer from './components/MapVisualizer';
+import LiveTrackingMap from './components/LiveTrackingMap';
 import LandingPage from './components/LandingPage';
 import AdminStats from './components/AdminStats';
 import LiveLogs from './components/LiveLogs';
@@ -150,7 +150,9 @@ function App() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           <div>
-            <MapVisualizer status={status} ambulancePos={ambulancePos} />
+            {/* The Zomato-style Tracker Map */}
+            <LiveTrackingMap routeInfo={routeInfo} status={status} />
+            
             {routeInfo && (
               <div className="glass-panel" style={{ marginTop: '1rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--primary-accent)' }}>
                 <h4 style={{ color: 'var(--primary-accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
