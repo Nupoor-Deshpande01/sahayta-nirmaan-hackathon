@@ -8,6 +8,7 @@ import LandingPage from './components/LandingPage';
 import AdminStats from './components/AdminStats';
 import LiveLogs from './components/LiveLogs';
 import AmbulanceNavigator from './components/AmbulanceNavigator';
+import BystanderSOS from './components/BystanderSOS';
 import { Activity } from 'lucide-react';
 import { io } from 'socket.io-client';
 
@@ -112,11 +113,15 @@ function App() {
   };
 
   if (view === 'landing') {
-    return <LandingPage onLaunch={() => setView('dashboard')} onLaunchHUD={() => setView('navigator')} />;
+    return <LandingPage onLaunch={() => setView('dashboard')} onLaunchHUD={() => setView('navigator')} onLaunchSOS={() => setView('sos')} />;
   }
 
   if (view === 'navigator') {
     return <AmbulanceNavigator onExit={() => setView('landing')} />;
+  }
+
+  if (view === 'sos') {
+    return <BystanderSOS onExit={() => setView('landing')} />;
   }
 
   return (

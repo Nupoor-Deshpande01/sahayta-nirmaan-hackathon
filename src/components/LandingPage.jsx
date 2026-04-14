@@ -53,7 +53,7 @@ const IMPACT_STATS = [
   },
 ];
 
-export default function LandingPage({ onLaunch, onLaunchHUD }) {
+export default function LandingPage({ onLaunch, onLaunchHUD, onLaunchSOS }) {
   const scrollTo = (id) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -83,12 +83,15 @@ export default function LandingPage({ onLaunch, onLaunchHUD }) {
           <p className="hero-subtitle">
             Sahayta creates a Smart Green Corridor from the accident site to the trauma center, reducing EMS response times by up to 73% for road accident victims.
           </p>
-          <div className="hero-actions">
+          <div className="hero-actions" style={{display: 'flex', gap: '1rem', flexWrap: 'wrap'}}>
             <button className="btn-primary-large" onClick={onLaunch}>
-              Start Simulation <ArrowRight size={20} />
+              Dispatcher View <ArrowRight size={20} />
             </button>
             <button className="btn-secondary-large" style={{background: '#1E293B', color: '#38BDF8', borderColor: '#0284C7'}} onClick={onLaunchHUD}>
-              Enter Responder HUD
+              Paramedic HUD
+            </button>
+            <button className="btn-primary-large" style={{background: '#EF4444', borderColor: '#EF4444'}} onClick={onLaunchSOS}>
+              Mobile SOS View
             </button>
           </div>
         </div>
