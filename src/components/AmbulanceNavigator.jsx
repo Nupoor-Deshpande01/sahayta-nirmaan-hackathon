@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { GoogleMap, DirectionsRenderer, Marker, Polyline } from '@react-google-maps/api';
 import {
   ShieldAlert, Activity, Navigation2, Zap, ArrowLeft,
-  Heart, Wind, Droplet, Clock, AlertTriangle, MapPin
+  Heart, Wind, Droplet, AlertTriangle, MapPin, Camera, Wifi
 } from 'lucide-react';
 import { MapsLoadedContext } from '../App';
+import { useRPPG } from '../hooks/useRPPG';
 
 const mapContainerStyle = { width: '100%', height: '100%' };
 const ACCIDENT_POS = { lat: 18.6298, lng: 73.7997 };
@@ -20,21 +21,6 @@ const lightMapStyle = [
   { featureType: 'transit',  elementType: 'labels',        stylers: [{ visibility: 'off' }] },
 ];
 
-// Animated vitals hook
-function useVitals() {
-  const [v, setV] = useState({ hr: 142, spo2: 94, bp: '138/88' });
-  useEffect(() => {
-    const t = setInterval(() => {
-      setV(prev => ({
-        hr:  Math.max(100, Math.min(165, prev.hr  + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 4))),
-        spo2: Math.max(88,  Math.min(97,  prev.spo2 + (Math.random() > 0.4 ? 0 : -1))),
-        bp: `${Math.max(120, Math.min(155, parseInt(prev.bp) + (Math.random() > 0.5 ? 2 : -2)))}/${Math.max(80, Math.min(100, parseInt(prev.bp.split('/')[1]) + (Math.random() > 0.5 ? 1 : -1)))}`,
-      }));
-    }, 1400);
-    return () => clearInterval(t);
-  }, []);
-  return v;
-}
 
 export default function AmbulanceNavigator({ onExit }) {
   const isLoaded = useContext(MapsLoadedContext);
@@ -44,7 +30,30 @@ export default function AmbulanceNavigator({ onExit }) {
   const [pingStatus, setPingStatus] = useState('');
   const [eta, setEta]               = useState('—');
   const [distance, setDistance]     = useState('—');
-  const vitals = useVitals();
+
+  // Hidden video element for rPPG camera sampling
+  const videoRef = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const vitals = useRPPG(videoRef, cameraActive);
+
+  // Start camera for rPPG on mount
+  useEffect(() => {
+    let stream;
+    navigator.mediaDevices?.getUserMedia({ video: { facingMode: 'environment', width: 320, height: 240 } })
+      .then(s => {
+        stream = s;
+        if (videoRef.current) {
+          videoRef.current.srcObject = s;
+          videoRef.current.play();
+          setCameraActive(true);
+        }
+      })
+      .catch(err => console.warn('[rPPG] Camera not available for vitals:', err));
+    return () => {
+      stream?.getTracks().forEach(t => t.stop());
+      setCameraActive(false);
+    };
+  }, []);
 
   // Fetch route to nearest hospital
   useEffect(() => {
@@ -84,8 +93,10 @@ export default function AmbulanceNavigator({ onExit }) {
     setTimeout(() => setPingStatus(''), 4000);
   };
 
-  const hrBad  = vitals.hr > 150;
-  const spo2Bad = vitals.spo2 < 92;
+  const hrBad   = vitals.hr   != null && vitals.hr > 150;
+  const spo2Bad = vitals.spo2 != null && vitals.spo2 < 92;
+  const isLive  = vitals.status === 'live';
+  const isMeasuring = vitals.status === 'measuring';
 
   const sidebarStyle = {
     position: 'absolute', left: 0, top: 0, bottom: 0, width: '300px',
@@ -107,6 +118,8 @@ export default function AmbulanceNavigator({ onExit }) {
 
   return (
     <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
+      {/* Hidden video element for rPPG sampling */}
+      <video ref={videoRef} autoPlay playsInline muted style={{ position: 'absolute', width: '1px', height: '1px', opacity: 0, pointerEvents: 'none' }} />
 
       {/* MAP */}
       <div style={{ position: 'absolute', left: '300px', right: 0, top: 0, bottom: 0 }}>
@@ -192,29 +205,44 @@ export default function AmbulanceNavigator({ onExit }) {
             <div style={{ padding: '0.6rem 1rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Activity size={13} color="#059669" />
               <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Live Patient Vitals</span>
-              <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
-                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 1.2s infinite' }}></span> LIVE
+              <span style={{ marginLeft: 'auto', fontSize: '0.65rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px',
+                color: isLive ? '#10b981' : isMeasuring ? '#F59E0B' : '#94a3b8' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isLive ? '#10b981' : isMeasuring ? '#F59E0B' : '#94a3b8',
+                  display: 'inline-block', animation: (isLive || isMeasuring) ? 'pulse 1.2s infinite' : 'none' }}></span>
+                {isLive ? 'rPPG LIVE' : isMeasuring ? `MEASURING ${vitals.confidence}%` : 'CAMERA OFF'}
               </span>
             </div>
+            {/* Confidence progress bar */}
+            {isMeasuring && (
+              <div style={{ height: '2px', background: '#e2e8f0' }}>
+                <div style={{ height: '100%', background: '#F59E0B', width: `${vitals.confidence}%`, transition: 'width 0.5s' }} />
+              </div>
+            )}
             <div style={{ padding: '0.75rem 1rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
-              {/* Hr */}
+              {/* HR */}
               <div style={{ textAlign: 'center' }}>
                 <Heart size={16} color={hrBad ? '#EF4444' : '#059669'} style={{ marginBottom: '4px' }} />
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: hrBad ? '#EF4444' : '#1e293b', lineHeight: 1 }}>{vitals.hr}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: hrBad ? '#EF4444' : '#1e293b', lineHeight: 1 }}>
+                  {isLive ? vitals.hr : isMeasuring ? '…' : '—'}
+                </div>
                 <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>BPM</div>
                 {hrBad && <div style={{ fontSize: '0.6rem', color: '#EF4444', fontWeight: 700 }}>HIGH</div>}
               </div>
               {/* SpO2 */}
               <div style={{ textAlign: 'center', borderLeft: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9' }}>
                 <Wind size={16} color={spo2Bad ? '#F59E0B' : '#059669'} style={{ marginBottom: '4px' }} />
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: spo2Bad ? '#F59E0B' : '#1e293b', lineHeight: 1 }}>{vitals.spo2}%</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: spo2Bad ? '#F59E0B' : '#1e293b', lineHeight: 1 }}>
+                  {isLive && vitals.spo2 != null ? `${vitals.spo2}%` : isMeasuring ? '…' : '—'}
+                </div>
                 <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>SpO₂</div>
                 {spo2Bad && <div style={{ fontSize: '0.6rem', color: '#F59E0B', fontWeight: 700 }}>LOW</div>}
               </div>
               {/* BP */}
               <div style={{ textAlign: 'center' }}>
                 <Droplet size={16} color="#3b82f6" style={{ marginBottom: '4px' }} />
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', lineHeight: 1 }}>{vitals.bp}</div>
+                <div style={{ fontSize: isLive ? '1.1rem' : '1.4rem', fontWeight: 800, color: '#1e293b', lineHeight: 1 }}>
+                  {isLive ? vitals.bp : isMeasuring ? '…' : '—'}
+                </div>
                 <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>mmHg</div>
               </div>
             </div>

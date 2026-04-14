@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { Camera, MapPin, AlertCircle, Bot, Building2, Send, User, Loader } from 'lucide-react';
+import { Camera, MapPin, AlertCircle, Bot, Building2, Send, User, Loader, Heart, Wind } from 'lucide-react';
 import { MapsLoadedContext } from '../App';
+import { useRPPG } from '../hooks/useRPPG';
 
 // Simulated Gemini-like emergency AI responses based on keywords
 const AI_RESPONSES = {
@@ -89,6 +90,8 @@ export default function BystanderSOS({ onExit }) {
   const videoRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
+  const [cameraActive, setCameraActive] = useState(false);
+  const vitals = useRPPG(videoRef, cameraActive);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -137,7 +140,10 @@ export default function BystanderSOS({ onExit }) {
     // Start camera
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) videoRef.current.srcObject = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setCameraActive(true);
+      }
     } catch (err) {
       console.error('Camera access denied', err);
     }
@@ -147,6 +153,20 @@ export default function BystanderSOS({ onExit }) {
       setTimeout(() => addBotMsg(msg), i * 1600);
     });
   };
+
+  // When rPPG goes live, inject real vitals report into chat
+  useEffect(() => {
+    if (vitals.status === 'live' && vitals.hr && step === 'connected') {
+      const spo2Str = vitals.spo2 ? `SpO₂: ${vitals.spo2}%` : '';
+      const hrAlert = vitals.hr > 120 ? ' ⚠️ Elevated heart rate detected.' : '';
+      const spo2Alert = vitals.spo2 && vitals.spo2 < 92 ? ' ⚠️ Low oxygen saturation — check airway.' : '';
+      addBotMsg(
+        `📡 rPPG Scan Complete — Real-time vitals from camera:\n❤️ Heart Rate: ${vitals.hr} BPM${spo2Str ? ` · ${spo2Str}` : ''}${hrAlert}${spo2Alert}\n\nSending vitals to trauma team at receiving hospital.`
+      );
+    }
+    // Only trigger once when status first becomes 'live'
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vitals.status]);
 
   const handleSend = async () => {
     const trimmed = userInput.trim();
@@ -221,6 +241,33 @@ export default function BystanderSOS({ onExit }) {
               <Camera size={13} color="#10B981" />
               <span style={{ color: '#10B981', fontWeight: 600 }}>Trauma Scanner Active</span>
             </div>
+            {/* rPPG Vitals overlay — top right of camera */}
+            {cameraActive && (
+              <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)', padding: '0.4rem 0.7rem', borderRadius: '0.5rem', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                {vitals.status === 'measuring' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', color: '#F59E0B', fontWeight: 700 }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F59E0B', animation: 'pulse 1s infinite', display: 'inline-block' }}></span>
+                    rPPG {vitals.confidence}%
+                  </div>
+                )}
+                {vitals.status === 'live' && (
+                  <>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#fff', fontWeight: 700 }}>
+                      <Heart size={12} color="#EF4444" fill="#EF4444" />
+                      <span style={{ color: vitals.hr > 100 ? '#EF4444' : '#10B981' }}>{vitals.hr}</span>
+                      <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>BPM</span>
+                    </div>
+                    {vitals.spo2 && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', color: '#fff', fontWeight: 700 }}>
+                        <Wind size={12} color="#38BDF8" />
+                        <span style={{ color: vitals.spo2 < 92 ? '#F59E0B' : '#10B981' }}>{vitals.spo2}%</span>
+                        <span style={{ fontSize: '0.65rem', color: '#94a3b8' }}>SpO₂</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
             {location && (
               <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, background: 'rgba(15,23,42,0.85)', padding: '0.35rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
                 <MapPin size={11} color="#38BDF8" /> {location}
