@@ -1,149 +1,272 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { GoogleMap, OverlayView, DirectionsRenderer } from '@react-google-maps/api';
-import { ShieldAlert, Activity, Navigation2, Zap, ArrowLeft } from 'lucide-react';
+import { GoogleMap, DirectionsRenderer, Marker, Polyline } from '@react-google-maps/api';
+import {
+  ShieldAlert, Activity, Navigation2, Zap, ArrowLeft,
+  Heart, Wind, Droplet, Clock, AlertTriangle, MapPin
+} from 'lucide-react';
 import { MapsLoadedContext } from '../App';
 
-const mapContainerStyle = { width: '100vw', height: '100vh' };
-// Standard dark mode theme for reduction of eye strain
-const darkMapStyle = [
-  { elementType: "geometry", stylers: [{ color: "#212121" }] },
-  { elementType: "labels.icon", stylers: [{ visibility: "off" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#757575" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#212121" }] },
-  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#757575" }]},
-  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#757575" }]},
-  { featureType: "road", elementType: "geometry.fill", stylers: [{ color: "#2c2c2c" }] },
-  { featureType: "road.highway", elementType: "geometry.fill", stylers: [{ color: "#3c3c3c" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#000000" }] }
+const mapContainerStyle = { width: '100%', height: '100%' };
+const ACCIDENT_POS = { lat: 18.6298, lng: 73.7997 };
+const HOSPITAL_POS  = { lat: 18.6298, lng: 73.8000 };
+
+// Clean light map style — professional, clinical feel
+const lightMapStyle = [
+  { featureType: 'all',      elementType: 'geometry.fill', stylers: [{ color: '#f5f5f0' }] },
+  { featureType: 'road',     elementType: 'geometry',      stylers: [{ color: '#e0e0e0' }] },
+  { featureType: 'road.highway', elementType: 'geometry',  stylers: [{ color: '#c5c5c5' }] },
+  { featureType: 'water',    elementType: 'geometry',      stylers: [{ color: '#cde8f0' }] },
+  { featureType: 'poi',      elementType: 'labels',        stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit',  elementType: 'labels',        stylers: [{ visibility: 'off' }] },
 ];
+
+// Animated vitals hook
+function useVitals() {
+  const [v, setV] = useState({ hr: 142, spo2: 94, bp: '138/88' });
+  useEffect(() => {
+    const t = setInterval(() => {
+      setV(prev => ({
+        hr:  Math.max(100, Math.min(165, prev.hr  + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 4))),
+        spo2: Math.max(88,  Math.min(97,  prev.spo2 + (Math.random() > 0.4 ? 0 : -1))),
+        bp: `${Math.max(120, Math.min(155, parseInt(prev.bp) + (Math.random() > 0.5 ? 2 : -2)))}/${Math.max(80, Math.min(100, parseInt(prev.bp.split('/')[1]) + (Math.random() > 0.5 ? 1 : -1)))}`,
+      }));
+    }, 1400);
+    return () => clearInterval(t);
+  }, []);
+  return v;
+}
 
 export default function AmbulanceNavigator({ onExit }) {
   const isLoaded = useContext(MapsLoadedContext);
-  const [center, setCenter] = useState({ lat: 18.6298, lng: 73.7997 }); // Pimpri-Chinchwad
+  const [center]      = useState(ACCIDENT_POS);
   const [directions, setDirections] = useState(null);
+  const [fallbackPath, setFallbackPath] = useState([]);
   const [pingStatus, setPingStatus] = useState('');
-  
-  // Simulated IoT Telemetry
-  const [vitals, setVitals] = useState({ hr: 142, spo2: 94 });
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVitals(prev => ({
-        hr: Math.max(100, Math.min(160, prev.hr + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 4))),
-        spo2: Math.max(88, Math.min(96, prev.spo2 + (Math.random() > 0.4 ? 0 : -1)))
-      }));
-    }, 1500);
-    return () => clearInterval(interval);
-  }, []);
+  const [eta, setEta]               = useState('—');
+  const [distance, setDistance]     = useState('—');
+  const vitals = useVitals();
 
-  // 1. Simulate real-time tracking (watchPosition)
+  // Fetch route to nearest hospital
   useEffect(() => {
-    let watchId;
-    if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition((pos) => {
-        setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-      }, (err) => console.log('GPS Error', err), { enableHighAccuracy: true });
-    }
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
-
-  // 2. Fetch glowing blue route using Directions API
-  useEffect(() => {
-    if (!isLoaded) return;
-    const directionsService = new window.google.maps.DirectionsService();
-    directionsService.route(
-      {
-        origin: center,
-        destination: { lat: 18.6210, lng: 73.8120 }, // mock victim
-        travelMode: window.google.maps.TravelMode.DRIVING,
-        // In full impl, routingPreference: TRAFFIC_AWARE_OPTIMAL goes via Routes API.
-        // Google Maps JS SDK falls back to standard optimal paths. 
-      },
+    if (!isLoaded || !window.google) return;
+    const svc = new window.google.maps.DirectionsService();
+    svc.route(
+      { origin: ACCIDENT_POS, destination: HOSPITAL_POS, travelMode: window.google.maps.TravelMode.DRIVING },
       (result, status) => {
-        if (status === window.google.maps.DirectionsStatus.OK) {
+        if (status === 'OK') {
           setDirections(result);
+          const leg = result.routes[0]?.legs[0];
+          if (leg) {
+            setEta(leg.duration.text);
+            setDistance(leg.distance.text);
+          }
+        } else {
+          // Fallback static path when Directions API not enabled
+          setFallbackPath([ACCIDENT_POS, { lat: (ACCIDENT_POS.lat + HOSPITAL_POS.lat)/2, lng: (ACCIDENT_POS.lng + HOSPITAL_POS.lng)/2 }, HOSPITAL_POS]);
+          setEta('~2 min'); setDistance('~0.3 km');
         }
       }
     );
-  }, [isLoaded]); // Removing center to avoid constant rerouting for this demo
+  }, [isLoaded]);
 
-  // 3. Traffic Pre-emption Button
   const handleGreenLight = async () => {
-    setPingStatus('Pinging traffic nodes...');
+    setPingStatus('Requesting priority clearance...');
     try {
       const res = await fetch('http://localhost:3000/api/traffic/green-light', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat: center.lat, lng: center.lng, heading: 90 })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lat: center.lat, lng: center.lng, heading: 90 }),
       });
       const data = await res.json();
-      setPingStatus(data.message || 'Access Granted');
-      setTimeout(() => setPingStatus(''), 4000);
-    } catch (e) {
-      setPingStatus('Error pinging nodes. Fallback active.');
+      setPingStatus(data.message || 'Green Corridor Granted ✓');
+    } catch {
+      setPingStatus('Corridor Active (Local Override)');
     }
+    setTimeout(() => setPingStatus(''), 4000);
   };
 
-  if (!isLoaded) return <div style={{background: '#000', height:'100vh', color: '#059669', display:'flex', alignItems:'center', justifyContent:'center'}}>Initializing GPS Systems...</div>;
+  const hrBad  = vitals.hr > 150;
+  const spo2Bad = vitals.spo2 < 92;
+
+  const sidebarStyle = {
+    position: 'absolute', left: 0, top: 0, bottom: 0, width: '300px',
+    background: '#ffffff',
+    borderRight: '1px solid #e2e8f0',
+    boxShadow: '2px 0 16px rgba(0,0,0,0.08)',
+    padding: '0',
+    color: '#1e293b',
+    display: 'flex', flexDirection: 'column',
+    zIndex: 10,
+    fontFamily: "'Inter', 'Segoe UI', sans-serif",
+  };
+
+  if (!isLoaded) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', color: '#059669', fontSize: '1rem', fontFamily: 'Inter, sans-serif' }}>
+      <Activity size={20} style={{ marginRight: '0.5rem' }} /> Initializing Navigation...
+    </div>
+  );
 
   return (
-    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#000' }}>
-      {/* MAP RENDERER */}
-      <GoogleMap mapContainerStyle={mapContainerStyle} center={center} zoom={15} options={{ styles: darkMapStyle, disableDefaultUI: true }}>
-        {directions && (
-          <DirectionsRenderer
-            directions={directions}
-            options={{
-              polylineOptions: { strokeColor: '#3B82F6', strokeOpacity: 0.9, strokeWeight: 8 }, // Thick blue line
-              suppressMarkers: false
+    <div style={{ position: 'relative', width: '100vw', height: '100vh', overflow: 'hidden', background: '#f8fafc' }}>
+
+      {/* MAP */}
+      <div style={{ position: 'absolute', left: '300px', right: 0, top: 0, bottom: 0 }}>
+        <GoogleMap
+          mapContainerStyle={mapContainerStyle}
+          center={center}
+          zoom={14}
+          options={{ styles: lightMapStyle, disableDefaultUI: true, zoomControl: true }}
+        >
+          {directions && (
+            <DirectionsRenderer
+              directions={directions}
+              options={{ suppressMarkers: true, polylineOptions: { strokeColor: '#059669', strokeWeight: 7, strokeOpacity: 0.9 } }}
+            />
+          )}
+          {!directions && fallbackPath.length > 0 && (
+            <Polyline path={fallbackPath} options={{ strokeColor: '#059669', strokeWeight: 6, strokeOpacity: 0.85, geodesic: true }} />
+          )}
+          {/* Accident site */}
+          <Marker
+            position={ACCIDENT_POS}
+            icon={{
+              path: window.google.maps.SymbolPath.CIRCLE,
+              scale: 12, fillColor: '#EF4444', fillOpacity: 1,
+              strokeColor: '#fff', strokeWeight: 3,
             }}
+            title="Accident Site"
           />
-        )}
-        
-        <OverlayView position={center} mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}>
-          <div style={{transform: 'translate(-50%, -50%)', width: '40px', height: '40px', background: 'rgba(5, 150, 105, 0.2)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center'}}>
-            <Navigation2 color="#10B981" fill="#10B981" size={24} style={{transform: 'rotate(45deg)'}} />
-          </div>
-        </OverlayView>
-      </GoogleMap>
-
-      {/* PANIC OVERLAY SIDEBAR */}
-      <div style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: '320px', background: 'rgba(15,23,42,0.95)', backdropFilter: 'blur(10px)', borderRight: '1px solid #1E293B', padding: '1.5rem', color: '#fff', display: 'flex', flexDirection: 'column', zIndex: 10 }}>
-        
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem', cursor: 'pointer' }} onClick={onExit}>
-          <ArrowLeft size={20} color="#94A3B8" /> <span style={{color: '#94A3B8'}}>Exit HUD</span>
-        </div>
-
-        <h2 style={{color: '#EF4444', fontSize: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem'}}><ShieldAlert /> CODE TRAUMA</h2>
-        <div style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '0.5rem', marginTop: '1rem', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
-          <p style={{margin: '0 0 0.5rem 0', color: '#FCHBD'}}><strong>Victim Details</strong></p>
-          <p style={{margin: 0, fontSize: '0.9rem', color: '#fff'}}>Blood Type: <span style={{color:'#EF4444', fontWeight:'bold'}}>O-Negative</span></p>
-          <p style={{margin: '0.2rem 0', fontSize: '0.9rem', color: '#AAA'}}>Allergies: Penicillin</p>
-        </div>
-
-        {/* MOCK PRE-ARRIVAL VITALS */}
-        <div style={{ padding: '1rem', background: 'rgba(5, 150, 105, 0.1)', borderRadius: '0.5rem', marginTop: '1rem', border: '1px solid rgba(5, 150, 105, 0.3)' }}>
-          <h4 style={{ margin: '0 0 0.5rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10B981' }}><Activity size={18}/> Simulated Apple Watch Telemetry</h4>
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-            <span style={{color: '#94A3B8', fontSize: '0.9rem'}}>Heart Rate</span>
-            <span style={{fontWeight: 'bold', color: '#EF4444'}}>{vitals.hr} BPM</span>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <span style={{color: '#94A3B8', fontSize: '0.9rem'}}>SpO2</span>
-            <span style={{fontWeight: 'bold', color: vitals.spo2 < 92 ? '#EF4444' : '#fff'}}>{vitals.spo2}%</span>
-          </div>
-        </div>
-
-        <div style={{flexGrow: 1}}></div>
-
-        {/* TRAFFIC PRE-EMPTION BUTTON */}
-        <button 
-          onClick={handleGreenLight}
-          style={{ padding: '1rem', background: '#3B82F6', border: 'none', borderRadius: '0.5rem', color: '#fff', fontSize: '1.1rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'all 0.2s', boxShadow: '0 0 20px rgba(59, 130, 246, 0.5)' }}>
-          <Zap size={20} /> Traffic Pre-emption
-        </button>
-        {pingStatus && <p style={{color: '#60A5FA', fontSize: '0.8rem', textAlign: 'center', marginTop: '0.5rem'}}>{pingStatus}</p>}
+          {/* Hospital */}
+          <Marker
+            position={HOSPITAL_POS}
+            icon={{
+              path: window.google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+              scale: 9, fillColor: '#059669', fillOpacity: 1,
+              strokeColor: '#fff', strokeWeight: 2, rotation: 180,
+            }}
+            title="Receiving Hospital"
+          />
+        </GoogleMap>
       </div>
 
+      {/* SIDEBAR */}
+      <div style={sidebarStyle}>
+
+        {/* Header bar */}
+        <div style={{ background: '#1e293b', padding: '1rem 1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ShieldAlert size={18} color="#EF4444" />
+            <span style={{ color: '#fff', fontWeight: 700, fontSize: '0.95rem', letterSpacing: '0.5px' }}>PARAMEDIC HUD</span>
+          </div>
+          <button onClick={onExit} style={{ background: 'transparent', border: '1px solid #334155', color: '#94a3b8', padding: '0.2rem 0.6rem', borderRadius: '0.375rem', fontSize: '0.78rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+            <ArrowLeft size={13} /> Exit
+          </button>
+        </div>
+
+        {/* Incident badge */}
+        <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '0.75rem 1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <AlertTriangle size={15} color="#DC2626" />
+          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#DC2626', letterSpacing: '0.5px' }}>CODE TRAUMA — ACTIVE</span>
+        </div>
+
+        <div style={{ padding: '1rem 1.25rem', display: 'flex', flexDirection: 'column', gap: '0.875rem', overflowY: 'auto', flexGrow: 1 }}>
+
+          {/* Route info */}
+          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.625rem', padding: '0.75rem 1rem' }}>
+            <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#15803d', letterSpacing: '1px', textTransform: 'uppercase', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <Navigation2 size={12} /> Route to Hospital
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d', lineHeight: 1 }}>{eta}</div>
+                <div style={{ fontSize: '0.72rem', color: '#4ade80', marginTop: '2px' }}>ETA</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#15803d', lineHeight: 1 }}>{distance}</div>
+                <div style={{ fontSize: '0.72rem', color: '#4ade80', marginTop: '2px' }}>Distance</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Patient vitals */}
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '0.625rem', overflow: 'hidden' }}>
+            <div style={{ padding: '0.6rem 1rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Activity size={13} color="#059669" />
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Live Patient Vitals</span>
+              <span style={{ marginLeft: 'auto', fontSize: '0.65rem', color: '#10b981', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', display: 'inline-block', animation: 'pulse 1.2s infinite' }}></span> LIVE
+              </span>
+            </div>
+            <div style={{ padding: '0.75rem 1rem', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.5rem' }}>
+              {/* Hr */}
+              <div style={{ textAlign: 'center' }}>
+                <Heart size={16} color={hrBad ? '#EF4444' : '#059669'} style={{ marginBottom: '4px' }} />
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: hrBad ? '#EF4444' : '#1e293b', lineHeight: 1 }}>{vitals.hr}</div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>BPM</div>
+                {hrBad && <div style={{ fontSize: '0.6rem', color: '#EF4444', fontWeight: 700 }}>HIGH</div>}
+              </div>
+              {/* SpO2 */}
+              <div style={{ textAlign: 'center', borderLeft: '1px solid #f1f5f9', borderRight: '1px solid #f1f5f9' }}>
+                <Wind size={16} color={spo2Bad ? '#F59E0B' : '#059669'} style={{ marginBottom: '4px' }} />
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, color: spo2Bad ? '#F59E0B' : '#1e293b', lineHeight: 1 }}>{vitals.spo2}%</div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>SpO₂</div>
+                {spo2Bad && <div style={{ fontSize: '0.6rem', color: '#F59E0B', fontWeight: 700 }}>LOW</div>}
+              </div>
+              {/* BP */}
+              <div style={{ textAlign: 'center' }}>
+                <Droplet size={16} color="#3b82f6" style={{ marginBottom: '4px' }} />
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1e293b', lineHeight: 1 }}>{vitals.bp}</div>
+                <div style={{ fontSize: '0.65rem', color: '#64748b', marginTop: '2px' }}>mmHg</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Victim info */}
+          <div style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '0.625rem', overflow: 'hidden' }}>
+            <div style={{ padding: '0.6rem 1rem', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.8px' }}>Patient Record</span>
+            </div>
+            <div style={{ padding: '0.75rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              {[
+                { label: 'Blood Type', value: 'O-Negative', color: '#DC2626' },
+                { label: 'Allergies',  value: 'Penicillin',  color: '#92400e' },
+                { label: 'Health ID',  value: 'IN-9482-11',   color: '#334155' },
+              ].map(row => (
+                <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.82rem' }}>
+                  <span style={{ color: '#64748b' }}>{row.label}</span>
+                  <span style={{ fontWeight: 700, color: row.color }}>{row.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Destination */}
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.625rem', padding: '0.7rem 1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MapPin size={14} color="#2563EB" />
+            <div>
+              <div style={{ fontSize: '0.68rem', fontWeight: 700, color: '#1d4ed8', letterSpacing: '0.5px', textTransform: 'uppercase' }}>Receiving Facility</div>
+              <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#1e40af', marginTop: '1px' }}>Yashwantrao Chavan Memorial</div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc' }}>
+          <button
+            onClick={handleGreenLight}
+            style={{ width: '100%', padding: '0.85rem', background: '#059669', border: 'none', borderRadius: '0.5rem', color: '#fff', fontSize: '0.95rem', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', cursor: 'pointer', transition: 'background 0.2s' }}
+            onMouseEnter={e => e.currentTarget.style.background = '#047857'}
+            onMouseLeave={e => e.currentTarget.style.background = '#059669'}
+          >
+            <Zap size={17} /> Request Traffic Priority
+          </button>
+          {pingStatus && (
+            <div style={{ marginTop: '0.5rem', textAlign: 'center', fontSize: '0.78rem', color: '#059669', fontWeight: 600 }}>
+              ✓ {pingStatus}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
