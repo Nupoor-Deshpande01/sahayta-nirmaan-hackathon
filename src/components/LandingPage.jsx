@@ -10,7 +10,7 @@ export default function LandingPage({ onLaunch }) {
           <div className="brand-icon">
             <HeartPulse color="#fff" size={24} />
           </div>
-          <h2>RescueLink</h2>
+          <h2>Sahayta</h2>
         </div>
         <div className="nav-links">
           <span>Features</span>
@@ -26,7 +26,7 @@ export default function LandingPage({ onLaunch }) {
             Strengthening Emergency Medical Services for <span className="highlight-green">Faster Response</span>
           </h1>
           <p className="hero-subtitle">
-            RescueLink creates a Smart Green Corridor from the accident site to the trauma center, reducing EMS response times by up to 50% for road accident victims.
+            Sahayta creates a Smart Green Corridor from the accident site to the trauma center, reducing EMS response times by up to 50% for road accident victims.
           </p>
           <div className="hero-actions">
             <button className="btn-primary-large" onClick={onLaunch}>

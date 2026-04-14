@@ -5,7 +5,12 @@ import StatusTimeline from './components/StatusTimeline';
 import HospitalDashboard from './components/HospitalDashboard';
 import MapVisualizer from './components/MapVisualizer';
 import LandingPage from './components/LandingPage';
+import AdminStats from './components/AdminStats';
+import LiveLogs from './components/LiveLogs';
 import { Activity } from 'lucide-react';
+import { io } from 'socket.io-client';
+
+const socket = io('http://localhost:3000');
 
 function App() {
   const [view, setView] = useState('landing');
@@ -14,6 +19,11 @@ function App() {
   const [eta, setEta] = useState('--');
 
   useEffect(() => {
+    // Socket Listeners
+    socket.on('new_sos', (data) => console.log('🟢 [Socket] New Emergency Broadcast:', data));
+    socket.on('green_corridor_active', (data) => console.log('🟢 [Socket] Green Corridor Active:', data));
+    socket.on('ambulance_location_update', (data) => console.log('🟢 [Socket] Ambulance moving:', data));
+
     let timeoutId;
     let etaInterval;
 
@@ -51,12 +61,38 @@ function App() {
     return () => {
       clearTimeout(timeoutId);
       clearInterval(etaInterval);
+      socket.off('new_sos');
+      socket.off('green_corridor_active');
+      socket.off('ambulance_location_update');
     };
   }, [status]);
 
-  const handleSos = () => {
+  const handleSos = async () => {
     setStatus('sos');
     setAmbulancePos({ x: '20%', y: '80%' });
+
+    try {
+      // 1. Trigger Full Backend SOS Sequence
+      console.log('Sending SOS to backend...');
+      const sosRes = await fetch('http://localhost:3000/api/sos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: '603d2bafb9c32b50901abccd', latitude: 18.6298, longitude: 73.7997, accidentSeverity: 'High' })
+      });
+      const sosData = await sosRes.json();
+      console.log('Backend response (SOS assigned):', sosData);
+
+      // 2. Trigger Backend Green Corridor Route
+      const corridorRes = await fetch('http://localhost:3000/api/corridor', {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ source: { lat: 18.6298, lng: 73.7997 }, destination: { lat: 18.6210, lng: 73.8120 } })
+      });
+      const corridorData = await corridorRes.json();
+      console.log('Backend Corridor Route:', corridorData);
+    } catch (err) {
+      console.error('Failed to communicate with backend:', err);
+    }
   };
 
   const handleReset = () => {
@@ -77,7 +113,7 @@ function App() {
             <Activity color="#fff" size={24} />
           </div>
           <div className="brand-title">
-            <h1>RescueLink System</h1>
+            <h1>Sahayta System</h1>
             <p>Next-Gen Emergency Medical Service Platform</p>
           </div>
         </div>
@@ -93,10 +129,14 @@ function App() {
           <StatusTimeline status={status} />
         </aside>
 
-        <MapVisualizer status={status} ambulancePos={ambulancePos} />
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <MapVisualizer status={status} ambulancePos={ambulancePos} />
+          <AdminStats />
+        </div>
 
-        <aside>
+        <aside style={{ display: 'flex', flexDirection: 'column' }}>
           <HospitalDashboard status={status} eta={eta} />
+          <LiveLogs socket={socket} />
         </aside>
       </main>
     </div>
