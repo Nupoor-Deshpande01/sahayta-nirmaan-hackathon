@@ -378,3 +378,376 @@
   font-variant-numeric: tabular-nums;
   margin-top: 0.5rem;
 }
+
+/* ==================================
+   SILENT GUARDIAN - Control Panel
+================================== */
+.guardian-section {
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  border-radius: 0.75rem;
+  background: rgba(5, 150, 105, 0.03);
+  overflow: hidden;
+}
+
+.guardian-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid rgba(5, 150, 105, 0.12);
+}
+
+.guardian-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 2rem;
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--text-muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.guardian-badge.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--primary-accent);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.guardian-toggle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.75rem;
+  border-radius: 2rem;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.guardian-toggle:hover {
+  border-color: var(--primary-accent);
+  color: var(--primary-accent);
+}
+
+.guardian-body {
+  padding: 0.85rem 1rem;
+  animation: slideIn 0.3s ease;
+}
+
+.btn-simulate-impact {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.65rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px dashed rgba(239, 68, 68, 0.4);
+  color: #EF4444;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-simulate-impact:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.15);
+  border-style: solid;
+}
+
+.btn-simulate-impact:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.impact-alert {
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: 0.5rem;
+  padding: 0.85rem;
+  animation: slideIn 0.3s ease;
+}
+
+.impact-alert-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+}
+
+.countdown-bar-track {
+  width: 100%;
+  height: 4px;
+  background: rgba(239, 68, 68, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+
+.countdown-bar-fill {
+  height: 100%;
+  background: #EF4444;
+  border-radius: 2px;
+  transition: width 1s linear;
+}
+
+.btn-cancel-sos {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.55rem;
+  border-radius: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btn-cancel-sos:hover {
+  background: rgba(239, 68, 68, 0.2);
+}
+
+.impact-cancelled {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--primary-accent);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  margin-top: 0.5rem;
+  animation: slideIn 0.3s ease;
+}
+
+/* ==================================
+   HOSPTRACK — Hospital Dashboard
+================================== */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.75rem;
+}
+
+.hosptrack-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.hosptrack-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+}
+
+.hosptrack-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 0.5rem;
+  background: rgba(59, 130, 246, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.hosptrack-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  margin-bottom: 0.2rem;
+}
+
+.hosptrack-total {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.status-dot {
+  position: absolute;
+  top: 0.6rem;
+  right: 0.6rem;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-dot.available {
+  background: var(--success-color);
+  box-shadow: 0 0 6px var(--success-color);
+  animation: ping 2s ease-in-out infinite;
+}
+
+/* ==================================
+   VITALSTREAM — Live Telemetry
+================================== */
+.vitalstream-section {
+  background: rgba(5, 150, 105, 0.03);
+  border: 1px solid rgba(5, 150, 105, 0.15);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.live-badge {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: #EF4444;
+  letter-spacing: 0.5px;
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.vitals-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.vital-card {
+  background: white;
+  border: 1px solid var(--border-color);
+  border-radius: 0.6rem;
+  padding: 0.75rem 0.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.vital-value {
+  font-size: 1.3rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+@keyframes heartbeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.3); }
+  50% { transform: scale(1); }
+  75% { transform: scale(1.15); }
+}
+
+/* ==================================
+   TIME SAVED COUNTER
+================================== */
+.time-saved-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(5, 150, 105, 0.08);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+  border-radius: 0.6rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  animation: slideIn 0.4s ease;
+}
+
+/* ==================================
+   MAP — First Responders & Hospital
+================================== */
+.marker-responder {
+  background-color: #3B82F6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
+  width: 20px;
+  height: 20px;
+  font-size: 0.6rem;
+}
+
+.marker-responder .entity-pulse {
+  background-color: rgba(59, 130, 246, 0.5);
+}
+
+.responder-pulse {
+  background-color: rgba(59, 130, 246, 0.4) !important;
+}
+
+.marker-hospital {
+  background-color: #fff;
+  border: 2px solid #EF4444;
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+  width: 28px;
+  height: 28px;
+  z-index: 15;
+  cursor: pointer;
+}
+
+.hospital-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(15, 23, 42, 0.95);
+  color: white;
+  padding: 0.6rem 0.85rem;
+  border-radius: 0.6rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 100;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  pointer-events: none;
+  line-height: 1.7;
+  animation: slideIn 0.2s ease;
+}
+
+.hospital-tooltip strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: #EF4444;
+  font-size: 0.8rem;
+}
+
+.hospital-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(15, 23, 42, 0.95);
+}
+
+.responder-tag {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #3B82F6;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  padding: 0.25rem 0.65rem;
+  border-radius: 2rem;
+  animation: slideIn 0.3s ease;
+}
