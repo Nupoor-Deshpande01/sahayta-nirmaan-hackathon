@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { GoogleMap, useJsApiLoader, OverlayView, DirectionsRenderer } from '@react-google-maps/api';
-import { ShieldAlert, Radio, Activity, Navigation2, Zap, ArrowLeft } from 'lucide-react';
+import React, { useState, useEffect, useContext } from 'react';
+import { GoogleMap, OverlayView, DirectionsRenderer } from '@react-google-maps/api';
+import { ShieldAlert, Activity, Navigation2, Zap, ArrowLeft } from 'lucide-react';
+import { MapsLoadedContext } from '../App';
 
 const mapContainerStyle = { width: '100vw', height: '100vh' };
 // Standard dark mode theme for reduction of eye strain
@@ -17,8 +18,8 @@ const darkMapStyle = [
 ];
 
 export default function AmbulanceNavigator({ onExit }) {
-  const { isLoaded } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY || 'MOCK_KEY' });
-  const [center, setCenter] = useState({ lat: 18.6298, lng: 73.7997 }); // Mock start
+  const isLoaded = useContext(MapsLoadedContext);
+  const [center, setCenter] = useState({ lat: 18.6298, lng: 73.7997 }); // Pimpri-Chinchwad
   const [directions, setDirections] = useState(null);
   const [pingStatus, setPingStatus] = useState('');
   
@@ -39,7 +40,7 @@ export default function AmbulanceNavigator({ onExit }) {
     let watchId;
     if (navigator.geolocation) {
       watchId = navigator.geolocation.watchPosition((pos) => {
-        setCenter({ lat: pos.coords.latitude, lng: pos.coords.latitude });
+        setCenter({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       }, (err) => console.log('GPS Error', err), { enableHighAccuracy: true });
     }
     return () => navigator.geolocation.clearWatch(watchId);

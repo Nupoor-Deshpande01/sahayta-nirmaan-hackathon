@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import './App.css';
 import ControlPanel from './components/ControlPanel';
 import StatusTimeline from './components/StatusTimeline';
@@ -11,6 +11,13 @@ import AmbulanceNavigator from './components/AmbulanceNavigator';
 import BystanderSOS from './components/BystanderSOS';
 import { Activity } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { LoadScript } from '@react-google-maps/api';
+
+// Global Maps context — ensures only ONE Google Maps JS SDK is loaded for the entire app
+export const MapsLoadedContext = createContext(false);
+
+const MAPS_LIBRARIES = ['geometry', 'places'];
+const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || '';
 
 const socket = io('http://localhost:3000');
 
@@ -20,14 +27,13 @@ function App() {
   const [ambulancePos, setAmbulancePos] = useState({ x: '20%', y: '80%' });
   const [eta, setEta] = useState('--');
   const [routeInfo, setRouteInfo] = useState(null);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
 
   useEffect(() => {
-    // Socket Listeners
     socket.on('new_sos', (data) => console.log('🟢 [Socket] New Emergency Broadcast:', data));
     socket.on('green_corridor_active', (data) => {
        console.log('🟢 [Socket] Green Corridor Active:', data);
        setRouteInfo(data.routeInfo);
-       // Override ETA with Google Maps real ETA
        if (data.routeInfo && data.routeInfo.etaMinutes) {
          setEta(data.routeInfo.etaMinutes.toString().padStart(2, '0'));
        }
@@ -82,8 +88,6 @@ function App() {
     setAmbulancePos({ x: '20%', y: '80%' });
 
     try {
-      // 1. Trigger Full Backend SOS Sequence
-      console.log('Sending SOS to backend...');
       const sosRes = await fetch('http://localhost:3000/api/sos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +96,6 @@ function App() {
       const sosData = await sosRes.json();
       console.log('Backend response (SOS assigned):', sosData);
 
-      // 2. Trigger Backend Green Corridor Route
       const corridorRes = await fetch('http://localhost:3000/api/corridor', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
@@ -112,69 +115,79 @@ function App() {
     setRouteInfo(null);
   };
 
-  if (view === 'landing') {
-    return <LandingPage onLaunch={() => setView('dashboard')} onLaunchHUD={() => setView('navigator')} onLaunchSOS={() => setView('sos')} />;
-  }
-
-  if (view === 'navigator') {
-    return <AmbulanceNavigator onExit={() => setView('landing')} />;
-  }
-
-  if (view === 'sos') {
-    return <BystanderSOS onExit={() => setView('landing')} />;
-  }
-
   return (
-    <div className="app-wrapper">
-      <header className="app-header">
-        <div className="brand">
-          <div className="brand-icon">
-            <Activity color="#fff" size={24} />
-          </div>
-          <div className="brand-title">
-            <h1>Sahayta System</h1>
-            <p>Next-Gen Emergency Medical Service Platform</p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <div className={`traffic-light ${status !== 'idle' ? 'green' : 'red'}`} style={{position: 'relative', top: 0, left: 0, transform: 'none'}}></div>
-          <span style={{color: 'var(--text-muted)'}}>System {status !== 'idle' ? 'Active' : 'Standby'}</span>
-        </div>
-      </header>
+    // Single LoadScript at the ROOT wraps the entire app — no component-level useJsApiLoader calls
+    <LoadScript
+      googleMapsApiKey={MAPS_API_KEY}
+      libraries={MAPS_LIBRARIES}
+      onLoad={() => setMapsLoaded(true)}
+      loadingElement={<div />}
+    >
+      <MapsLoadedContext.Provider value={mapsLoaded}>
+        {view === 'landing' && (
+          <LandingPage onLaunch={() => setView('dashboard')} onLaunchHUD={() => setView('navigator')} onLaunchSOS={() => setView('sos')} />
+        )}
 
-      <main className="dashboard-grid">
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <ControlPanel status={status} onSos={handleSos} onReset={handleReset} />
-          <StatusTimeline status={status} />
-        </aside>
+        {view === 'navigator' && (
+          <AmbulanceNavigator onExit={() => setView('landing')} />
+        )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          <div>
-            {/* The Zomato-style Tracker Map */}
-            <LiveTrackingMap routeInfo={routeInfo} status={status} />
-            
-            {routeInfo && (
-              <div className="glass-panel" style={{ marginTop: '1rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--primary-accent)' }}>
-                <h4 style={{ color: 'var(--primary-accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Google_Maps_Logo_2020.svg" alt="Google Maps" style={{width: '20px'}}/>
-                  Live Maps API Route Data
-                </h4>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-                  <span><strong>Distance:</strong> {routeInfo.distance} </span>
-                  <span><strong>Optimized ETA:</strong> {routeInfo.etaMinutes} mins </span>
+        {view === 'sos' && (
+          <BystanderSOS onExit={() => setView('landing')} />
+        )}
+
+        {view === 'dashboard' && (
+          <div className="app-wrapper">
+            <header className="app-header">
+              <div className="brand">
+                <div className="brand-icon">
+                  <Activity color="#fff" size={24} />
+                </div>
+                <div className="brand-title">
+                  <h1>Sahayta System</h1>
+                  <p>Next-Gen Emergency Medical Service Platform</p>
                 </div>
               </div>
-            )}
-          </div>
-          <AdminStats />
-        </div>
+              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                <div className={`traffic-light ${status !== 'idle' ? 'green' : 'red'}`} style={{position: 'relative', top: 0, left: 0, transform: 'none'}}></div>
+                <span style={{color: 'var(--text-muted)'}}>System {status !== 'idle' ? 'Active' : 'Standby'}</span>
+              </div>
+            </header>
 
-        <aside style={{ display: 'flex', flexDirection: 'column' }}>
-          <HospitalDashboard status={status} eta={eta} />
-          <LiveLogs socket={socket} />
-        </aside>
-      </main>
-    </div>
+            <main className="dashboard-grid">
+              <aside style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <ControlPanel status={status} onSos={handleSos} onReset={handleReset} />
+                <StatusTimeline status={status} />
+              </aside>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                <div>
+                  <LiveTrackingMap routeInfo={routeInfo} status={status} />
+                  {routeInfo && (
+                    <div className="glass-panel" style={{ marginTop: '1rem', background: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--primary-accent)' }}>
+                      <h4 style={{ color: 'var(--primary-accent)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/b/bd/Google_Maps_Logo_2020.svg" alt="Google Maps" style={{width: '20px'}}/>
+                        Live Maps API Route Data
+                      </h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
+                        <span><strong>Distance:</strong> {routeInfo.distance} </span>
+                        <span><strong>Optimized ETA:</strong> {routeInfo.etaMinutes} mins </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <AdminStats />
+              </div>
+
+              <aside style={{ display: 'flex', flexDirection: 'column' }}>
+                <HospitalDashboard status={status} eta={eta} />
+                <LiveLogs socket={socket} />
+              </aside>
+            </main>
+          </div>
+        )}
+      </MapsLoadedContext.Provider>
+    </LoadScript>
   );
 }
 

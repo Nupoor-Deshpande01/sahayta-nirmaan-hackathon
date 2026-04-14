@@ -1,73 +1,49 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Camera, MapPin, AlertCircle, PhoneCall, Bot, Building2 } from 'lucide-react';
-import { useJsApiLoader } from '@react-google-maps/api';
+import { MapsLoadedContext } from '../App';
 
-const libraries = ['places'];
 
 export default function BystanderSOS({ onExit }) {
-  const [step, setStep] = useState('idle'); // idle -> locating -> connected
+  const isLoaded = useContext(MapsLoadedContext);
+  const [step, setStep] = useState('idle');
   const [location, setLocation] = useState(null);
   const [chatLog, setChatLog] = useState([]);
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
   const videoRef = useRef(null);
 
-  const { isLoaded } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_KEY || 'MOCK_KEY', libraries });
-
   const startEmergency = () => {
     setStep('locating');
     
-    // 1. Geolocation API & Google Roads API Simulation/Fetch
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(async (pos) => {
         const { latitude, longitude } = pos.coords;
-        const apiKey = import.meta.env.VITE_GOOGLE_MAPS_KEY;
-        
+        setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+
+        // Fetch Nearby Hospitals from our backend
         try {
-          if (apiKey && apiKey !== 'MOCK_KEY') {
-            const res = await fetch(`https://roads.googleapis.com/v1/snapToRoads?path=${latitude},${longitude}&interpolate=true&key=${apiKey}`);
-            const data = await res.json();
-            if (data.snappedPoints) {
-              setLocation(`Lat: ${data.snappedPoints[0].location.latitude.toFixed(4)}, Lng: ${data.snappedPoints[0].location.longitude.toFixed(4)} (Road Snapped)`);
-            } else {
-              setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-            }
-          } else {
-            setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+          const res = await fetch(`http://localhost:3000/api/hospitals/nearest?lat=${latitude}&lng=${longitude}`);
+          const data = await res.json();
+          if (data.success && data.data) {
+            setNearbyHospitals(data.data.slice(0, 3));
           }
         } catch (e) {
-          setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
-        }
-
-        // Fetch Nearby Hospitals
-        if (isLoaded && window.google) {
-          const service = new window.google.maps.places.PlacesService(document.createElement('div'));
-          service.nearbySearch(
-            { location: { lat: latitude, lng: longitude }, radius: 10000, type: 'hospital' },
-            (results, status) => {
-              if (status === window.google.maps.places.PlacesServiceStatus.OK && results) {
-                const top3 = results.slice(0, 3);
-                let completed = 0;
-                const hospitalsWithDetails = [];
-                top3.forEach((hosp) => {
-                  service.getDetails({ placeId: hosp.place_id, fields: ['name', 'formatted_phone_number', 'vicinity'] }, (details, detStatus) => {
-                    completed++;
-                    if (detStatus === window.google.maps.places.PlacesServiceStatus.OK && details) {
-                      hospitalsWithDetails.push(details);
-                    }
-                    if (completed === top3.length) setNearbyHospitals(hospitalsWithDetails);
-                  });
-                });
-              }
-            }
-          );
+          console.error('Failed to fetch hospitals:', e);
         }
 
         startVideoAndAI();
       }, (err) => {
-        console.error("GPS Denied", err);
-        setLocation("Unknown Location");
+        console.error('GPS Denied', err);
+        // Fallback: use hardcoded Pimpri-Chinchwad coords
+        fetch('http://localhost:3000/api/hospitals/nearest?lat=18.6298&lng=73.7997')
+          .then(r => r.json())
+          .then(data => { if (data.success) setNearbyHospitals(data.data.slice(0, 3)); })
+          .catch(() => {});
+        setLocation('Pimpri-Chinchwad (GPS unavailable)');
         startVideoAndAI();
       }, { enableHighAccuracy: true });
+    } else {
+      setLocation('Geolocation not supported');
+      startVideoAndAI();
     }
   };
 
@@ -150,12 +126,13 @@ export default function BystanderSOS({ onExit }) {
                 </h3>
                 <div style={{ display: 'flex', overflowX: 'auto', gap: '0.5rem', paddingBottom: '0.5rem' }}>
                   {nearbyHospitals.map((h, i) => (
-                    <div key={i} style={{ minWidth: '220px', background: '#0F172A', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
+                    <div key={h._id || i} style={{ minWidth: '220px', background: '#0F172A', padding: '0.75rem', borderRadius: '0.5rem', border: '1px solid #334155' }}>
                       <p style={{ margin: '0 0 0.25rem 0', fontWeight: 'bold', fontSize: '0.85rem' }}>{h.name}</p>
-                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#94A3B8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.vicinity}</p>
-                      <a href={`tel:${h.formatted_phone_number}`} style={{ background: '#10B981', color: '#fff', padding: '0.35rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.8rem', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontWeight: 'bold' }}>
-                        <PhoneCall size={12} /> {h.formatted_phone_number || 'Call Hospital'}
-                      </a>
+                      <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.75rem', color: '#94A3B8' }}>🛏 {h.availableBeds} beds · ICU: {h.ICUAvailable ? 'Yes' : 'No'}</p>
+                      <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.75rem', color: '#94A3B8' }}>💨 {h.ventilators}/{h.totalVentilators} ventilators · Team: {h.surgicalTeamStatus}</p>
+                      <span style={{ background: h.availableBeds > 0 ? '#10B981' : '#EF4444', color: '#fff', padding: '0.25rem 0.5rem', borderRadius: '0.25rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                        {h.availableBeds > 0 ? '✅ Accepting Patients' : '❌ Full'}
+                      </span>
                     </div>
                   ))}
                 </div>

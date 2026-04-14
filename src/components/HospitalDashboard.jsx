@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ActivitySquare, Droplet, Clock, UserCheck, Wind, Activity, Heart, Thermometer, Timer } from 'lucide-react';
+import { ActivitySquare, Droplet, Clock, UserCheck, Wind, Activity, Heart, Thermometer, Timer, MapPin } from 'lucide-react';
 
-// VitalStream: simulated telemetry hook
+// VitalStream: simulated telemetry hook (realistic ambulance vitals stream)
 function useVitalStream(active) {
   const [vitals, setVitals] = useState({ hr: 92, spo2: 97, bp: '118/76' });
   const intervalRef = useRef(null);
@@ -38,6 +38,36 @@ function useTimeSaved(active) {
   return saved;
 }
 
+// Hook to fetch nearest hospital from backend
+function useNearestHospital(active) {
+  const [hospital, setHospital] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!active) return;
+    setLoading(true);
+    // Use Pimpri-Chinchwad accident coordinates
+    fetch('http://localhost:3000/api/hospitals/nearest?lat=18.6298&lng=73.7997')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.data && data.data.length > 0) {
+          setHospital(data.data[0]);
+        } else {
+          setError('No hospitals found nearby');
+        }
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error('Failed to fetch hospitals:', err);
+        setError('Could not reach server');
+        setLoading(false);
+      });
+  }, [active]);
+
+  return { hospital, loading, error };
+}
+
 export default function HospitalDashboard({ status, eta }) {
   const isAlerted = ['hospital_alert', 'arrived'].includes(status);
   const isDispatched = ['dispatch', 'green_corridor', 'hospital_alert', 'arrived'].includes(status);
@@ -45,9 +75,20 @@ export default function HospitalDashboard({ status, eta }) {
 
   const vitals = useVitalStream(isDispatched);
   const timeSaved = useTimeSaved(isGreenCorridorActive);
+  const { hospital, loading, error } = useNearestHospital(isDispatched);
 
   const spo2Color = vitals.spo2 >= 95 ? 'var(--success-color)' : vitals.spo2 >= 90 ? '#F59E0B' : '#EF4444';
   const hrColor = vitals.hr < 100 ? 'var(--success-color)' : vitals.hr < 120 ? '#F59E0B' : '#EF4444';
+
+  // Derived hospital values, fall back gracefully while loading
+  const hospitalName = hospital ? hospital.name : 'Locating nearest trauma center...';
+  const traumaCenter = hospital ? `Trauma Center #${hospital.traumaCenter}` : 'Hospital Command';
+  const ventilators = hospital ? hospital.ventilators : '—';
+  const totalVentilators = hospital ? hospital.totalVentilators : '—';
+  const bloodOneg = hospital && hospital.bloodUnits ? hospital.bloodUnits['O-'] : '—';
+  const traumaRoom = hospital ? hospital.traumaRoom : '—';
+  const surgicalTeam = hospital ? hospital.surgicalTeamStatus : '—';
+  const availableBeds = hospital ? hospital.availableBeds : '—';
 
   return (
     <div className="glass-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
@@ -56,8 +97,15 @@ export default function HospitalDashboard({ status, eta }) {
           <ActivitySquare color="var(--primary-accent)" />
           Hospital Command
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem' }}>
-          Trauma Center #4 - Pre-arrival Dashboard
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+          {isDispatched ? (
+            <>
+              <MapPin size={13} color="var(--primary-accent)" />
+              {loading ? 'Finding nearest hospital...' : error ? 'Could not locate hospital' : hospitalName}
+            </>
+          ) : (
+            'Pre-arrival Dashboard'
+          )}
         </p>
       </div>
 
@@ -69,40 +117,50 @@ export default function HospitalDashboard({ status, eta }) {
             <h2>{eta} <span style={{ fontSize: '1.25rem', color: 'var(--text-muted)' }}>MIN</span></h2>
           </div>
 
-          {/* HospTrack: Resource Status */}
+          {/* HospTrack: Resource Status — REAL DATA */}
           <div className="hosptrack-section">
             <div className="section-label">
               <Wind size={14} color="var(--primary-accent)" />
               HospTrack — Resource Status
+              {loading && <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>fetching...</span>}
             </div>
             <div className="hosptrack-grid">
               <div className="hosptrack-card">
                 <div className="hosptrack-icon"><Wind size={18} color="#3B82F6" /></div>
                 <div>
-                  <div className="hosptrack-value">3<span className="hosptrack-total">/5</span></div>
+                  <div className="hosptrack-value">
+                    {ventilators}<span className="hosptrack-total">/{totalVentilators}</span>
+                  </div>
                   <div className="metric-label">Ventilators</div>
                 </div>
-                <div className="status-dot available"></div>
+                <div className={`status-dot ${ventilators > 0 ? 'available' : 'unavailable'}`}></div>
               </div>
               <div className="hosptrack-card">
                 <div className="hosptrack-icon"><Droplet size={18} color="#EF4444" /></div>
                 <div>
-                  <div className="hosptrack-value">12<span className="hosptrack-total"> units</span></div>
-                  <div className="metric-label">Blood O-</div>
+                  <div className="hosptrack-value">{bloodOneg}<span className="hosptrack-total"> units</span></div>
+                  <div className="metric-label">Blood O−</div>
                 </div>
-                <div className="status-dot available"></div>
+                <div className={`status-dot ${bloodOneg > 0 ? 'available' : 'unavailable'}`}></div>
               </div>
             </div>
+            {hospital && (
+              <div style={{ marginTop: '0.4rem', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                🛏 {availableBeds} beds available · ICU: {hospital.ICUAvailable ? '✅ Yes' : '❌ No'}
+              </div>
+            )}
           </div>
 
           {/* Trauma Room Readiness */}
           <div className="metrics-grid" style={{ opacity: isAlerted ? 1 : 0.4, transition: 'opacity 0.5s' }}>
             <div className="metric-card">
-              <div className="metric-value highlight">Bay 2</div>
+              <div className="metric-value highlight">{traumaRoom}</div>
               <div className="metric-label">Trauma Room</div>
             </div>
             <div className="metric-card">
-              <div className="metric-value" style={{ color: 'var(--success-color)' }}>Ready</div>
+              <div className="metric-value" style={{
+                color: surgicalTeam === 'Ready' ? 'var(--success-color)' : surgicalTeam === 'Busy' ? '#EF4444' : '#F59E0B'
+              }}>{surgicalTeam}</div>
               <div className="metric-label">Surgical Team</div>
             </div>
           </div>
@@ -143,7 +201,7 @@ export default function HospitalDashboard({ status, eta }) {
             </div>
           )}
 
-          {/* Patient Info */}
+          {/* Patient Info — shown once hospital is alerted */}
           <div className="patient-info" style={{ opacity: isAlerted ? 1 : 0.4, transition: 'opacity 0.5s' }}>
             <div className="patient-header">
               <UserCheck size={18} /> Victim Analytics (Synced)
@@ -162,6 +220,12 @@ export default function HospitalDashboard({ status, eta }) {
               <span style={{ color: 'var(--text-muted)' }}>Allergies</span>
               <span>Penicillin</span>
             </div>
+            {hospital && (
+              <div className="info-row">
+                <span style={{ color: 'var(--text-muted)' }}>Receiving Hospital</span>
+                <span style={{ color: 'var(--primary-accent)', fontWeight: 600, fontSize: '0.8rem' }}>{hospital.name}</span>
+              </div>
+            )}
           </div>
         </>
       ) : (
