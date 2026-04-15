@@ -81,7 +81,7 @@ export default function AmbulanceNavigator({ onExit }) {
   const handleGreenLight = async () => {
     setPingStatus('Requesting priority clearance...');
     try {
-      const res = await fetch('http://localhost:3000/api/traffic/green-light', {
+      const res = await fetch('/api/traffic/green-light', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ lat: center.lat, lng: center.lng, heading: 90 }),
       });

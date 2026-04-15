@@ -87,6 +87,7 @@ export default function BystanderSOS({ onExit }) {
   const [nearbyHospitals, setNearbyHospitals] = useState([]);
   const [userInput, setUserInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [cameraError, setCameraError] = useState(null); // null | 'permission' | 'unavailable' | 'insecure'
   const videoRef = useRef(null);
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -120,13 +121,29 @@ export default function BystanderSOS({ onExit }) {
     }
   };
 
+  // Mock fallback hospitals (Pimpri-Chinchwad region) used when backend is unreachable
+  const FALLBACK_HOSPITALS = [
+    { _id: 'f1', name: 'PCMC Yashwantrao Hospital', availableBeds: 12, ICUAvailable: true },
+    { _id: 'f2', name: 'Aditya Birla Memorial Hospital', availableBeds: 5, ICUAvailable: true },
+    { _id: 'f3', name: 'Lokmanya Hospital', availableBeds: 8, ICUAvailable: false },
+  ];
+
   const fetchHospitals = async (lat, lng) => {
     try {
-      const res = await fetch(`http://localhost:3000/api/hospitals/nearest?lat=${lat}&lng=${lng}`);
+      // Use relative URL — works via Vite proxy locally and reverse-proxy in production
+      const res = await fetch(`/api/hospitals/nearest?lat=${lat}&lng=${lng}`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      if (data.success && data.data) setNearbyHospitals(data.data.slice(0, 3));
+      if (data.success && data.data && data.data.length > 0) {
+        setNearbyHospitals(data.data.slice(0, 3));
+      } else {
+        // Backend returned empty or no success — use fallback
+        setNearbyHospitals(FALLBACK_HOSPITALS);
+      }
     } catch (e) {
-      console.error('Failed to fetch hospitals:', e);
+      console.error('Failed to fetch hospitals, using fallback:', e);
+      // Always show hospitals — never leave the strip blank
+      setNearbyHospitals(FALLBACK_HOSPITALS);
     }
   };
 
@@ -137,18 +154,38 @@ export default function BystanderSOS({ onExit }) {
   const startVideoAndAI = async () => {
     setStep('connected');
 
-    // Start camera
+    // Start camera with detailed error handling for mobile
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setCameraActive(true);
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        // No getUserMedia API — either insecure context (HTTP) or very old browser
+        if (window.location.protocol === 'http:' && !['localhost', '127.0.0.1'].includes(window.location.hostname)) {
+          setCameraError('insecure');
+        } else {
+          setCameraError('unavailable');
+        }
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setCameraActive(true);
+        }
       }
     } catch (err) {
-      console.error('Camera access denied', err);
+      console.error('Camera error:', err.name, err.message);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        setCameraError('permission');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        setCameraError('unavailable');
+      } else if (err.name === 'NotSupportedError' || err.name === 'SecurityError') {
+        setCameraError('insecure');
+      } else {
+        setCameraError('unavailable');
+      }
     }
 
-    // Drip-feed initial AI messages
+    // Drip-feed initial AI messages regardless of camera status
     SCAN_MESSAGES.forEach((msg, i) => {
       setTimeout(() => addBotMsg(msg), i * 1600);
     });
@@ -205,8 +242,26 @@ export default function BystanderSOS({ onExit }) {
         <h1 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, letterSpacing: '0.5px' }}>
           <AlertCircle size={20} /> SOS MODE
         </h1>
-        <button onClick={onExit} style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.6)', color: '#fff', padding: '0.25rem 0.875rem', borderRadius: '0.375rem', fontSize: '0.85rem', cursor: 'pointer' }}>
-          Cancel
+        {/* Back / Exit button — always goes to landing */}
+        <button
+          onClick={onExit}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '0.35rem',
+            background: 'rgba(0,0,0,0.25)',
+            border: '1px solid rgba(255,255,255,0.3)',
+            color: '#fff',
+            padding: '0.35rem 0.875rem',
+            borderRadius: '2rem',
+            fontSize: '0.82rem',
+            fontWeight: 700,
+            cursor: 'pointer',
+            transition: 'background 0.2s',
+            letterSpacing: '0.3px',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.45)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.25)'}
+        >
+          ← Back
         </button>
       </header>
 
@@ -236,10 +291,25 @@ export default function BystanderSOS({ onExit }) {
 
           {/* Camera Feed */}
           <div style={{ position: 'relative', height: '32vh', background: '#000', flexShrink: 0, overflow: 'hidden' }}>
-            <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {/* Show camera error overlay when camera unavailable */}
+            {cameraError ? (
+              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#0a0f1a' }}>
+                <Camera size={32} color="#475569" />
+                <p style={{ margin: 0, color: '#94A3B8', fontWeight: 700, fontSize: '0.9rem' }}>Camera Unavailable</p>
+                <p style={{ margin: 0, color: '#64748B', fontSize: '0.75rem', textAlign: 'center', maxWidth: '240px', lineHeight: 1.5 }}>
+                  {cameraError === 'permission' && 'Camera permission denied. Please allow camera access in your browser settings and try again.'}
+                  {cameraError === 'insecure' && 'Camera requires a secure connection (HTTPS). AI chat and hospital info still work.'}
+                  {cameraError === 'unavailable' && 'No camera detected on this device. AI chat and hospital info still work.'}
+                </p>
+              </div>
+            ) : (
+              <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            )}
             <div style={{ position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.6)', padding: '0.3rem 0.7rem', borderRadius: '0.375rem', fontSize: '0.77rem', display: 'flex', gap: '0.4rem', alignItems: 'center', backdropFilter: 'blur(4px)' }}>
-              <Camera size={13} color="#10B981" />
-              <span style={{ color: '#10B981', fontWeight: 600 }}>Trauma Scanner Active</span>
+              <Camera size={13} color={cameraError ? '#EF4444' : '#10B981'} />
+              <span style={{ color: cameraError ? '#EF4444' : '#10B981', fontWeight: 600 }}>
+                {cameraError ? 'Camera Unavailable' : 'Trauma Scanner Active'}
+              </span>
             </div>
             {/* rPPG Vitals overlay — top right of camera */}
             {cameraActive && (
@@ -387,6 +457,10 @@ export default function BystanderSOS({ onExit }) {
         @keyframes spin {
           from { transform: rotate(0deg); }
           to { transform: rotate(360deg); }
+        }
+        @keyframes sos-ring {
+          0%, 100% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.12); opacity: 0.5; }
         }
       `}</style>
     </div>

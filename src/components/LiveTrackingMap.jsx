@@ -22,7 +22,7 @@ export default function LiveTrackingMap({ routeInfo, status }) {
 
   // Fetch nearest hospitals
   useEffect(() => {
-    fetch(`http://localhost:3000/api/hospitals/nearest?lat=${ACCIDENT_POS.lat}&lng=${ACCIDENT_POS.lng}`)
+    fetch(`/api/hospitals/nearest?lat=${ACCIDENT_POS.lat}&lng=${ACCIDENT_POS.lng}`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data && data.data.length > 0) {

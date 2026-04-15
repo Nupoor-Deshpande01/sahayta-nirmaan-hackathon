@@ -13,7 +13,7 @@ export default function AdminStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const res = await fetch('http://localhost:3000/api/dashboard/stats');
+        const res = await fetch('/api/dashboard/stats');
         const json = await res.json();
         if (json.success) {
           setStats(json.data);

@@ -19,7 +19,12 @@ export const MapsLoadedContext = createContext(false);
 const MAPS_LIBRARIES = ['geometry', 'places'];
 const MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_KEY || '';
 
-const socket = io('http://localhost:3000');
+// Connect to backend (dynamically handles local vs production/Vercel)
+const SOCKET_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : undefined;
+const socket = io(SOCKET_URL, {
+  path: '/socket.io',
+  transports: ['websocket', 'polling'] // Vercel mostly relies on polling
+});
 
 function App() {
   const [view, setView] = useState('landing');
@@ -88,7 +93,7 @@ function App() {
     setAmbulancePos({ x: '20%', y: '80%' });
 
     try {
-      const sosRes = await fetch('http://localhost:3000/api/sos', {
+      const sosRes = await fetch('/api/sos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: '603d2bafb9c32b50901abccd', latitude: 18.6298, longitude: 73.7997, accidentSeverity: 'High' })
@@ -96,7 +101,7 @@ function App() {
       const sosData = await sosRes.json();
       console.log('Backend response (SOS assigned):', sosData);
 
-      const corridorRes = await fetch('http://localhost:3000/api/corridor', {
+      const corridorRes = await fetch('/api/corridor', {
          method: 'POST',
          headers: { 'Content-Type': 'application/json' },
          body: JSON.stringify({ source: { lat: 18.6298, lng: 73.7997 }, destination: { lat: 18.6210, lng: 73.8120 } })
@@ -139,13 +144,36 @@ function App() {
         {view === 'dashboard' && (
           <div className="app-wrapper">
             <header className="app-header">
-              <div className="brand">
-                <div className="brand-icon">
-                  <Activity color="#fff" size={24} />
-                </div>
-                <div className="brand-title">
-                  <h1>Sahayta System</h1>
-                  <p>Next-Gen Emergency Medical Service Platform</p>
+              <div className="brand" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <button
+                  onClick={() => setView('landing')}
+                  style={{
+                    background: 'rgba(0,0,0,0.05)',
+                    border: '1px solid rgba(0,0,0,0.1)',
+                    color: 'var(--text-primary)',
+                    padding: '0.35rem 0.875rem',
+                    borderRadius: '2rem',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'rgba(0,0,0,0.1)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'rgba(0,0,0,0.05)'}
+                >
+                  ← Back
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <div className="brand-icon">
+                    <Activity color="#fff" size={24} />
+                  </div>
+                  <div className="brand-title">
+                    <h1>Sahayta System</h1>
+                    <p>Next-Gen Emergency Medical Service Platform</p>
+                  </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>

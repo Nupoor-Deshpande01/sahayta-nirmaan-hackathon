@@ -48,7 +48,7 @@ function useNearestHospital(active) {
     if (!active) return;
     setLoading(true);
     // Use Pimpri-Chinchwad accident coordinates
-    fetch('http://localhost:3000/api/hospitals/nearest?lat=18.6298&lng=73.7997')
+    fetch('/api/hospitals/nearest?lat=18.6298&lng=73.7997')
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data && data.data.length > 0) {
