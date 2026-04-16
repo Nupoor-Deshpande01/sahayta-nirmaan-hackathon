@@ -7,6 +7,8 @@ const SOSRequestSchema = new mongoose.Schema({
     longitude: { type: Number, required: true }
   },
   accidentSeverity: { type: String, enum: ['Low', 'Medium', 'High', 'Critical'], default: 'High' },
+  witnessName: { type: String, default: 'Anonymous Responder' },
+  witnessPhone: { type: String, default: 'Unknown' },
   assignedAmbulanceId: { type: mongoose.Schema.Types.ObjectId, ref: 'Ambulance' },
   targetHospitalId: { type: mongoose.Schema.Types.ObjectId, ref: 'Hospital' },
   status: { type: String, enum: ['pending', 'dispatched', 'arrived', 'completed'], default: 'pending' },

@@ -6,13 +6,15 @@ const { sendSMS } = require('../services/notificationService');
 
 exports.triggerSOS = async (req, res) => {
   try {
-    const { userId, latitude, longitude, accidentSeverity } = req.body;
+    const { userId, latitude, longitude, accidentSeverity, witnessName, witnessPhone } = req.body;
 
     // 1. Log SOS in database
     const sosRequest = new SOSRequest({
       userId,
       location: { latitude, longitude },
-      accidentSeverity: accidentSeverity || 'High'
+      accidentSeverity: accidentSeverity || 'High',
+      witnessName: witnessName || 'Anonymous Responder',
+      witnessPhone: witnessPhone || 'Unknown'
     });
 
     // 2. Find Nearest Available Ambulance (Mock Logic: select first available)
