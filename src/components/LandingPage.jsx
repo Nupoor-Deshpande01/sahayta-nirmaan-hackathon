@@ -139,9 +139,9 @@ export default function LandingPage({ onLaunch, onLaunchHUD, onLaunchSOS }) {
       <nav className="landing-nav">
         <div className="brand">
           <div className="brand-icon">
-            <HeartPulse color="#fff" size={24} />
+            <Activity color="#10B981" size={20} strokeWidth={3} />
           </div>
-          <h2>Sahayta</h2>
+          <h2 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', letterSpacing: '-0.05em', color: '#0F172A', textTransform: 'uppercase' }}>SAHAYTA</h2>
         </div>
         <div className="nav-links">
           <span onClick={() => scrollTo('features-section')} style={{ cursor: 'pointer' }}>Features</span>

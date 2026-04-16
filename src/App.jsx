@@ -190,13 +190,13 @@ function App() {
                 >
                   ← Back
                 </button>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
                   <div className="brand-icon">
-                    <Activity color="#fff" size={24} />
+                    <Activity color="#10B981" size={20} strokeWidth={3} />
                   </div>
                   <div className="brand-title">
-                    <h1>Sahayta System</h1>
-                    <p>Next-Gen Emergency Medical Service Platform</p>
+                    <h1 style={{ margin: 0, fontWeight: 900, fontSize: '1.35rem', letterSpacing: '-0.05em', color: '#0F172A', textTransform: 'uppercase' }}>SAHAYTA</h1>
+                    <p style={{ margin: 0, fontSize: '0.75rem', color: '#64748B', fontWeight: 600, letterSpacing: '0.5px' }}>EMS OPERATIONAL COMMAND</p>
                   </div>
                 </div>
               </div>

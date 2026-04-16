@@ -23,14 +23,14 @@
 }
 
 .brand-icon {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--sos-color), #f97316);
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  background: #1E293B; /* Stark slate */
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .brand-title h1 {
