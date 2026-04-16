@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { Camera, MapPin, AlertCircle, Bot, Building2, Send, User, Loader, Heart, Wind } from 'lucide-react';
+import { Camera, MapPin, AlertCircle, Bot, Building2, Send, User, Loader, Heart, Wind, PhoneCall } from 'lucide-react';
 import { MapsLoadedContext } from '../App';
 import { useRPPG } from '../hooks/useRPPG';
 
@@ -123,9 +123,9 @@ export default function BystanderSOS({ onExit }) {
 
   // Mock fallback hospitals (Pimpri-Chinchwad region) used when backend is unreachable
   const FALLBACK_HOSPITALS = [
-    { _id: 'f1', name: 'PCMC Yashwantrao Hospital', availableBeds: 12, ICUAvailable: true },
-    { _id: 'f2', name: 'Aditya Birla Memorial Hospital', availableBeds: 5, ICUAvailable: true },
-    { _id: 'f3', name: 'Lokmanya Hospital', availableBeds: 8, ICUAvailable: false },
+    { _id: 'f1', name: 'PCMC Yashwantrao Hospital', availableBeds: 12, ICUAvailable: true, phoneNumber: '020-67332200' },
+    { _id: 'f2', name: 'Aditya Birla Memorial Hospital', availableBeds: 5, ICUAvailable: true, phoneNumber: '+91 20 3071 7777' },
+    { _id: 'f3', name: 'Lokmanya Hospital Chinchwad', availableBeds: 8, ICUAvailable: false, phoneNumber: '+91 20 3061 2009' },
   ];
 
   const fetchHospitals = async (lat, lng) => {
@@ -355,12 +355,19 @@ export default function BystanderSOS({ onExit }) {
               </div>
               <div style={{ display: 'flex', overflowX: 'auto', gap: '0.5rem', paddingBottom: '0.25rem' }}>
                 {nearbyHospitals.map((h, i) => (
-                  <div key={h._id || i} style={{ minWidth: '190px', background: '#0F172A', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #334155', flexShrink: 0 }}>
-                    <p style={{ margin: '0 0 0.2rem 0', fontWeight: 700, fontSize: '0.8rem' }}>{h.name}</p>
-                    <p style={{ margin: '0 0 0.15rem 0', fontSize: '0.7rem', color: '#94A3B8' }}>🛏 {h.availableBeds} beds · ICU: {h.ICUAvailable ? 'Yes' : 'No'}</p>
-                    <span style={{ background: h.availableBeds > 0 ? '#059669' : '#DC2626', color: '#fff', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.68rem', fontWeight: 700 }}>
-                      {h.availableBeds > 0 ? '✅ Accepting' : '❌ Full'}
-                    </span>
+                  <div key={h._id || i} style={{ minWidth: '190px', background: '#0F172A', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #334155', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', cursor: 'default' }}>
+                    <div>
+                      <p style={{ margin: '0 0 0.2rem 0', fontWeight: 700, fontSize: '0.8rem' }}>{h.name}</p>
+                      <p style={{ margin: '0', fontSize: '0.7rem', color: '#94A3B8' }}>🛏 {h.availableBeds} beds · ICU: {h.ICUAvailable ? 'Yes' : 'No'}</p>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.1rem' }}>
+                      <span style={{ background: h.availableBeds > 0 ? '#059669' : '#DC2626', color: '#fff', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.68rem', fontWeight: 700 }}>
+                        {h.availableBeds > 0 ? '✅ Accepting' : '❌ Full'}
+                      </span>
+                      <a href={`tel:${h.phoneNumber || '108'}`} style={{ background: '#3B82F6', color: '#fff', border: 'none', padding: '0.25rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                        <PhoneCall size={12} /> Call
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -412,7 +419,8 @@ export default function BystanderSOS({ onExit }) {
             </div>
 
             {/* Input bar — FULLY FUNCTIONAL */}
-            <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #1E293B', display: 'flex', gap: '0.6rem', background: '#111827', flexShrink: 0 }}>
+            {/* Input bar — space to not overlap with fixed bar */}
+            <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #1E293B', display: 'flex', gap: '0.6rem', background: '#111827', flexShrink: 0, paddingBottom: '5rem' }}>
               <input
                 ref={inputRef}
                 type="text"
@@ -425,6 +433,7 @@ export default function BystanderSOS({ onExit }) {
                   border: '1px solid #334155', background: '#1E293B', color: '#fff',
                   fontSize: '0.875rem', outline: 'none',
                   transition: 'border-color 0.2s',
+                  position: 'relative', zIndex: 10
                 }}
                 onFocus={e => e.target.style.borderColor = '#3B82F6'}
                 onBlur={e => e.target.style.borderColor = '#334155'}
@@ -439,10 +448,18 @@ export default function BystanderSOS({ onExit }) {
                   borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: userInput.trim() && !isTyping ? 'pointer' : 'default',
                   flexShrink: 0, transition: 'background 0.2s',
+                  position: 'relative', zIndex: 10
                 }}
               >
                 {isTyping ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}
               </button>
+            </div>
+            
+            {/* Call Ambulance Bar - FIXED AT BOTTOM */}
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '0.75rem 1rem', background: 'rgba(17, 24, 39, 0.95)', backdropFilter: 'blur(10px)', borderTop: '1px solid #1E293B', display: 'flex', justifyContent: 'center', zIndex: 9999, boxShadow: '0 -4px 15px rgba(0,0,0,0.5)' }}>
+              <a href="tel:108" style={{ background: '#DC2626', color: '#fff', width: '100%', maxWidth: '600px', padding: '0.85rem', textAlign: 'center', borderRadius: '0.5rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', letterSpacing: '0.5px', boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)' }}>
+                <PhoneCall size={18} /> CALL AMBULANCE (108)
+              </a>
             </div>
           </div>
 
