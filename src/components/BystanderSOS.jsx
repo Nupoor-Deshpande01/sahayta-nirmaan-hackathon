@@ -247,7 +247,7 @@ export default function BystanderSOS({ onExit }) {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0F172A', color: '#fff', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAFA', color: '#1E293B', display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Inter', sans-serif" }}>
       <header style={{ padding: '0.875rem 1.25rem', background: '#DC2626', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
         <h1 style={{ margin: 0, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: 800, letterSpacing: '0.5px' }}>
           <AlertCircle size={20} /> SOS MODE
@@ -285,14 +285,14 @@ export default function BystanderSOS({ onExit }) {
           >
             REPORT<br />ACCIDENT
           </button>
-          <p style={{ color: '#94A3B8', maxWidth: '300px', lineHeight: 1.6 }}>Tap immediately to ping nearby responders and connect with our AI first-aid assistant.</p>
+          <p style={{ color: '#64748B', maxWidth: '300px', lineHeight: 1.6 }}>Tap immediately to ping nearby responders and connect with our AI first-aid assistant.</p>
         </div>
       )}
 
       {step === 'locating' && (
-        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: '#38BDF8' }}>
+        <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', color: '#00B27A' }}>
           <MapPin size={48} style={{ animation: 'pulse 1s ease-in-out infinite' }} />
-          <p style={{ margin: 0 }}>Acquiring GPS location...</p>
+          <p style={{ margin: 0, fontWeight: 600 }}>Acquiring GPS location...</p>
         </div>
       )}
 
@@ -303,9 +303,9 @@ export default function BystanderSOS({ onExit }) {
           <div style={{ position: 'relative', height: '32vh', background: '#000', flexShrink: 0, overflow: 'hidden' }}>
             {/* Show camera error overlay when camera unavailable */}
             {cameraError ? (
-              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#0a0f1a' }}>
+              <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', background: '#F1F5F9' }}>
                 <Camera size={32} color="#475569" />
-                <p style={{ margin: 0, color: '#94A3B8', fontWeight: 700, fontSize: '0.9rem' }}>Camera Unavailable</p>
+                <p style={{ margin: 0, color: '#334155', fontWeight: 700, fontSize: '0.9rem' }}>Camera Unavailable</p>
                 <p style={{ margin: 0, color: '#64748B', fontSize: '0.75rem', textAlign: 'center', maxWidth: '240px', lineHeight: 1.5 }}>
                   {cameraError === 'permission' && 'Camera permission denied. Please allow camera access in your browser settings and try again.'}
                   {cameraError === 'insecure' && 'Camera requires a secure connection (HTTPS). AI chat and hospital info still work.'}
@@ -349,32 +349,32 @@ export default function BystanderSOS({ onExit }) {
               </div>
             )}
             {location && (
-              <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, background: 'rgba(15,23,42,0.85)', padding: '0.35rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <MapPin size={11} color="#38BDF8" /> {location}
+              <div style={{ position: 'absolute', bottom: 8, left: 8, right: 8, background: 'rgba(255,255,255,0.9)', padding: '0.35rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px', color: '#1E293B' }}>
+                <MapPin size={11} color="#00B27A" /> {location}
               </div>
             )}
             {/* Scanner overlay */}
-            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', border: '1.5px solid rgba(16,185,129,0.5)', width: '55%', height: '55%', borderRadius: '0.75rem' }} />
+            <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', border: '1.5px solid rgba(0,178,122,0.5)', width: '55%', height: '55%', borderRadius: '0.75rem' }} />
           </div>
 
           {/* Hospitals strip */}
           {nearbyHospitals.length > 0 && (
-            <div style={{ background: '#1E293B', padding: '0.75rem 1rem', borderBottom: '1px solid #334155', flexShrink: 0 }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10B981', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
+            <div style={{ background: '#F1F5F9', padding: '0.75rem 1rem', borderBottom: '1px solid #E2E8F0', flexShrink: 0 }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#00B27A', display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.5rem' }}>
                 <Building2 size={13} /> Nearest Emergency Contacts
               </div>
               <div style={{ display: 'flex', overflowX: 'auto', gap: '0.5rem', paddingBottom: '0.25rem' }}>
                 {nearbyHospitals.map((h, i) => (
-                  <div key={h._id || i} style={{ minWidth: '190px', background: '#0F172A', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #334155', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', cursor: 'default' }}>
+                  <div key={h._id || i} style={{ minWidth: '190px', background: '#FFFFFF', padding: '0.6rem 0.75rem', borderRadius: '0.5rem', border: '1px solid #CBD5E1', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', cursor: 'default', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                     <div>
-                      <p style={{ margin: '0 0 0.2rem 0', fontWeight: 700, fontSize: '0.8rem' }}>{h.name}</p>
-                      <p style={{ margin: '0', fontSize: '0.7rem', color: '#94A3B8' }}>🛏 {h.availableBeds} beds · ICU: {h.ICUAvailable ? 'Yes' : 'No'}</p>
+                      <p style={{ margin: '0 0 0.2rem 0', fontWeight: 700, fontSize: '0.8rem', color: '#1E293B' }}>{h.name}</p>
+                      <p style={{ margin: '0', fontSize: '0.7rem', color: '#64748B' }}>🛏 {h.availableBeds} beds · ICU: {h.ICUAvailable ? 'Yes' : 'No'}</p>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.1rem' }}>
-                      <span style={{ background: h.availableBeds > 0 ? '#059669' : '#DC2626', color: '#fff', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.68rem', fontWeight: 700 }}>
+                      <span style={{ background: h.availableBeds > 0 ? '#00B27A' : '#DC2626', color: '#fff', padding: '0.15rem 0.4rem', borderRadius: '0.25rem', fontSize: '0.68rem', fontWeight: 700 }}>
                         {h.availableBeds > 0 ? '✅ Accepting' : '❌ Full'}
                       </span>
-                      <a href={`tel:${h.phoneNumber || '108'}`} style={{ background: '#3B82F6', color: '#fff', border: 'none', padding: '0.25rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none' }}>
+                      <a href={`tel:${h.phoneNumber || '108'}`} style={{ background: '#F8FAFC', color: '#334155', border: '1px solid #CBD5E1', padding: '0.25rem 0.6rem', borderRadius: '0.25rem', fontSize: '0.7rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', textDecoration: 'none', transition: 'background 0.2s' }}>
                         <PhoneCall size={12} /> Call
                       </a>
                     </div>
@@ -385,27 +385,29 @@ export default function BystanderSOS({ onExit }) {
           )}
 
           {/* Chat window */}
-          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#0F172A' }}>
+          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: '#FFFFFF' }}>
             <div style={{ flexGrow: 1, padding: '0.875rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {chatLog.map((c, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', flexDirection: c.sender === 'user' ? 'row-reverse' : 'row' }}>
                   {c.sender === 'bot' ? (
-                    <div style={{ background: '#1d4ed8', borderRadius: '50%', padding: '0.35rem', flexShrink: 0 }}>
+                    <div style={{ background: '#00B27A', borderRadius: '50%', padding: '0.35rem', flexShrink: 0 }}>
                       <Bot size={15} color="#fff" />
                     </div>
                   ) : (
-                    <div style={{ background: '#334155', borderRadius: '50%', padding: '0.35rem', flexShrink: 0 }}>
-                      <User size={15} color="#fff" />
+                    <div style={{ background: '#F1F5F9', borderRadius: '50%', padding: '0.35rem', flexShrink: 0 }}>
+                      <User size={15} color="#64748B" />
                     </div>
                   )}
                   <div style={{
-                    background: c.sender === 'user' ? '#1d4ed8' : '#1E293B',
+                    background: c.sender === 'user' ? '#00B27A' : '#F8FAFC',
                     padding: '0.6rem 0.875rem',
                     borderRadius: c.sender === 'user' ? '1rem 1rem 0.25rem 1rem' : '1rem 1rem 1rem 0.25rem',
+                    border: c.sender === 'bot' ? '1px solid #E2E8F0' : 'none',
                     fontSize: '0.875rem',
                     lineHeight: '1.5',
                     maxWidth: '80%',
-                    color: '#fff',
+                    color: c.sender === 'user' ? '#fff' : '#334155',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.02)'
                   }}>
                     {c.text}
                   </div>
@@ -415,22 +417,21 @@ export default function BystanderSOS({ onExit }) {
               {/* Typing indicator */}
               {isTyping && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <div style={{ background: '#1d4ed8', borderRadius: '50%', padding: '0.35rem' }}>
+                  <div style={{ background: '#00B27A', borderRadius: '50%', padding: '0.35rem' }}>
                     <Bot size={15} color="#fff" />
                   </div>
-                  <div style={{ background: '#1E293B', padding: '0.6rem 1rem', borderRadius: '1rem 1rem 1rem 0.25rem', display: 'flex', gap: '4px', alignItems: 'center' }}>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38BDF8', animation: 'bounce 1s infinite 0s' }}></span>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38BDF8', animation: 'bounce 1s infinite 0.15s' }}></span>
-                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#38BDF8', animation: 'bounce 1s infinite 0.3s' }}></span>
+                  <div style={{ background: '#F8FAFC', padding: '0.6rem 1rem', borderRadius: '1rem 1rem 1rem 0.25rem', border: '1px solid #E2E8F0', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00B27A', animation: 'bounce 1s infinite 0s' }}></span>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00B27A', animation: 'bounce 1s infinite 0.15s' }}></span>
+                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#00B27A', animation: 'bounce 1s infinite 0.3s' }}></span>
                   </div>
                 </div>
               )}
               <div ref={chatEndRef} />
             </div>
 
-            {/* Input bar — FULLY FUNCTIONAL */}
             {/* Input bar — space to not overlap with fixed bar */}
-            <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #1E293B', display: 'flex', gap: '0.6rem', background: '#111827', flexShrink: 0, paddingBottom: '5rem' }}>
+            <div style={{ padding: '0.75rem 1rem', borderTop: '1px solid #E2E8F0', display: 'flex', gap: '0.6rem', background: '#FAFAFA', flexShrink: 0, paddingBottom: '5rem' }}>
               <input
                 ref={inputRef}
                 type="text"
@@ -440,33 +441,33 @@ export default function BystanderSOS({ onExit }) {
                 placeholder="Describe the injury or ask for first-aid guidance..."
                 style={{
                   flexGrow: 1, padding: '0.7rem 1rem', borderRadius: '1.5rem',
-                  border: '1px solid #334155', background: '#1E293B', color: '#fff',
+                  border: '1px solid #CBD5E1', background: '#FFFFFF', color: '#1E293B',
                   fontSize: '0.875rem', outline: 'none',
                   transition: 'border-color 0.2s',
                   position: 'relative', zIndex: 10
                 }}
-                onFocus={e => e.target.style.borderColor = '#3B82F6'}
-                onBlur={e => e.target.style.borderColor = '#334155'}
+                onFocus={e => e.target.style.borderColor = '#00B27A'}
+                onBlur={e => e.target.style.borderColor = '#CBD5E1'}
                 disabled={isTyping}
               />
               <button
                 onClick={handleSend}
                 disabled={!userInput.trim() || isTyping}
                 style={{
-                  background: userInput.trim() && !isTyping ? '#1d4ed8' : '#334155',
-                  border: 'none', color: '#fff', width: '42px', height: '42px',
+                  background: userInput.trim() && !isTyping ? '#00B27A' : '#E2E8F0',
+                  border: 'none', color: userInput.trim() && !isTyping ? '#fff' : '#94A3B8', width: '42px', height: '42px',
                   borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: userInput.trim() && !isTyping ? 'pointer' : 'default',
                   flexShrink: 0, transition: 'background 0.2s',
                   position: 'relative', zIndex: 10
                 }}
               >
-                {isTyping ? <Loader size={16} style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}
+                {isTyping ? <Loader size={16} color="#64748B" style={{ animation: 'spin 1s linear infinite' }} /> : <Send size={16} />}
               </button>
             </div>
             
             {/* Call Ambulance Bar - FIXED AT BOTTOM */}
-            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '0.75rem 1rem', background: 'rgba(17, 24, 39, 0.95)', backdropFilter: 'blur(10px)', borderTop: '1px solid #1E293B', display: 'flex', justifyContent: 'center', zIndex: 9999, boxShadow: '0 -4px 15px rgba(0,0,0,0.5)' }}>
+            <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, padding: '0.75rem 1rem', background: 'rgba(255, 255, 255, 0.95)', backdropFilter: 'blur(10px)', borderTop: '1px solid #E2E8F0', display: 'flex', justifyContent: 'center', zIndex: 9999, boxShadow: '0 -4px 15px rgba(0,0,0,0.05)' }}>
               <a href="tel:108" style={{ background: '#DC2626', color: '#fff', width: '100%', maxWidth: '600px', padding: '0.85rem', textAlign: 'center', borderRadius: '0.5rem', fontWeight: 800, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', letterSpacing: '0.5px', boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)' }}>
                 <PhoneCall size={18} /> CALL AMBULANCE (108)
               </a>

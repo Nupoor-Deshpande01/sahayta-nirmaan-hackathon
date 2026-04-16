@@ -58,7 +58,7 @@
   padding: 5rem 5%;
   position: relative;
   overflow: hidden;
-  background: radial-gradient(circle at top right, rgba(16, 185, 129, 0.1), transparent 50%);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0.6) 50%, rgba(255, 255, 255, 0.1) 100%), url('/ambulance--bg.png') center center/cover no-repeat;
   min-height: 90vh;
 }
 
@@ -163,7 +163,7 @@
   border-radius: 0.875rem;
   padding: 1rem 1.25rem;
   flex: 1;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .hero-stat-card.compact {
@@ -193,16 +193,26 @@
   color: #1e293b;
 }
 
-.hero-stat-value.red { color: #EF4444; }
-.hero-stat-value.green { color: #059669; }
-.strike { text-decoration: line-through; color: #94A3B8; font-size: 0.95rem; }
+.hero-stat-value.red {
+  color: #EF4444;
+}
+
+.hero-stat-value.green {
+  color: #059669;
+}
+
+.strike {
+  text-decoration: line-through;
+  color: #94A3B8;
+  font-size: 0.95rem;
+}
 
 .hero-map-card {
   background: white;
   border: 1px solid #e2e8f0;
   border-radius: 1rem;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .hero-map-header {
@@ -231,8 +241,15 @@
 }
 
 @keyframes pulse-text {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .hero-svg-map {
@@ -270,14 +287,26 @@
   border-color: #86efac;
 }
 
-@keyframes pulse-marker {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50% { opacity: 0.7; transform: scale(1.15); }
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* ========================

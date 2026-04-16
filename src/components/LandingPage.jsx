@@ -18,17 +18,16 @@ const IMPACT_STATS = [
 // Animated route SVG hero illustration
 function HeroVisual() {
   const [step, setStep] = useState(0); // 0=idle 1=sos 2=route 3=arrived
-  const [ambulanceX, setAmbulanceX] = useState(80);
-  const [heartbeat, setHeartbeat] = useState(72);
+
+
 
   useEffect(() => {
     const seq = [
       () => setStep(1),
       () => setStep(2),
-      () => { setStep(2); setAmbulanceX(180); },
-      () => { setAmbulanceX(280); },
-      () => { setAmbulanceX(380); setStep(3); },
-      () => { setStep(0); setAmbulanceX(80); },
+      () => setStep(2),
+      () => setStep(3),
+      () => setStep(0),
     ];
     let i = 0;
     const t = setInterval(() => {
@@ -38,16 +37,9 @@ function HeroVisual() {
     return () => clearInterval(t);
   }, []);
 
-  useEffect(() => {
-    const t = setInterval(() => {
-      setHeartbeat(v => Math.max(65, Math.min(98, v + (Math.random() > 0.5 ? 2 : -2))));
-    }, 900);
-    return () => clearInterval(t);
-  }, []);
+
 
   const isActive = step > 0;
-  const corridorColor = step >= 2 ? '#10B981' : '#d1d5db';
-  const ambulanceVisible = step >= 1;
 
   return (
     <div className="hero-visual-rich">
@@ -74,54 +66,37 @@ function HeroVisual() {
           {isActive && <span className="hero-live-badge">● LIVE</span>}
         </div>
 
-        {/* SVG road map */}
-        <svg viewBox="0 0 460 130" className="hero-svg-map">
-          {/* Road */}
-          <rect x="40" y="58" width="380" height="14" rx="7" fill="#e2e8f0" />
-          {/* Green corridor highlight */}
-          <rect x="40" y="58" width={step >= 2 ? (ambulanceX > 40 ? ambulanceX - 40 : 0) : 0} height="14" rx="7" fill="#10B981" opacity="0.35"
-            style={{ transition: 'width 0.6s ease' }} />
-          {/* Route line */}
-          <line x1="40" y1="65" x2="420" y2="65" stroke={corridorColor} strokeWidth="2.5" strokeDasharray={step >= 2 ? '0' : '8 6'}
-            style={{ transition: 'stroke 0.5s' }} />
+        {/* Telemetry Event Stream instead of generic SVG map */}
+        <div style={{ padding: '0.75rem 1rem 1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', minHeight: '170px' }}>
+          {step === 0 && (
+             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '130px', color: '#94A3B8', fontSize: '0.85rem', gap: '0.75rem' }}>
+                 <div style={{ width: '16px', height: '16px', border: '2px solid #E2E8F0', borderTopColor: '#10B981', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+                 Monitoring regional sensor array...
+             </div>
+          )}
 
-          {/* Traffic lights */}
-          {[130, 230, 330].map((x, i) => (
-            <g key={x}>
-              <rect x={x - 8} y="42" width="16" height="24" rx="3" fill={step >= 2 ? '#10B981' : '#EF4444'} opacity="0.85"
-                style={{ transition: 'fill 0.4s' }} />
-              <circle cx={x} cy="50" r="4" fill="white" opacity="0.8" />
-            </g>
-          ))}
-
-          {/* Accident marker */}
           {step >= 1 && (
-            <g style={{ animation: 'pulse-marker 1s ease-in-out infinite' }}>
-              <circle cx="40" cy="65" r="10" fill="#EF4444" opacity="0.2" />
-              <circle cx="40" cy="65" r="6" fill="#EF4444" />
-              <text x="40" y="69.5" textAnchor="middle" fontSize="7" fill="white" fontWeight="bold">!</text>
-            </g>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(239,68,68,0.05)' }}>
+                <div style={{ background: '#EF4444', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '0.35rem', fontSize: '0.65rem', fontWeight: 'bold', letterSpacing: '0.5px' }}>CRASH SENSOR</div>
+                <div style={{ fontSize: '0.82rem', color: '#7F1D1D', fontWeight: 600 }}>High-velocity impact detected at 18.624N, 73.799E.</div>
+             </div>
           )}
 
-          {/* Hospital marker */}
-          <g>
-            <rect x="404" y="48" width="32" height="26" rx="4" fill="#EFF6FF" stroke="#3B82F6" strokeWidth="1.5" />
-            <text x="420" y="65" textAnchor="middle" fontSize="10" fill="#3B82F6" fontWeight="bold">H</text>
-            {step === 3 && <circle cx="420" cy="45" r="5" fill="#10B981" />}
-          </g>
-
-          {/* Ambulance */}
-          {ambulanceVisible && (
-            <g style={{ transform: `translateX(${ambulanceX}px)`, transition: 'transform 0.6s ease' }}>
-              <rect x="0" y="53" width="28" height="18" rx="4" fill="#10B981" />
-              <text x="14" y="65" textAnchor="middle" fontSize="10">🚑</text>
-            </g>
+          {step >= 2 && (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem', background: '#F0FDF4', border: '1px solid #BBF7D0', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(16,185,129,0.05)' }}>
+                <div style={{ background: '#10B981', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '0.35rem', fontSize: '0.65rem', fontWeight: 'bold', letterSpacing: '0.5px' }}>TRAFFIC AI</div>
+                <div style={{ fontSize: '0.82rem', color: '#166534', fontWeight: 600 }}>Route locked. 4 junctions overridden to GREEN.</div>
+                <span style={{marginLeft: 'auto', fontSize: '0.75rem', color: '#059669', fontWeight: 800}}>ETA -6m</span>
+             </div>
           )}
 
-          {/* Labels */}
-          <text x="40" y="90" textAnchor="middle" fontSize="9" fill="#94A3B8">Accident</text>
-          <text x="420" y="90" textAnchor="middle" fontSize="9" fill="#94A3B8">Hospital</text>
-        </svg>
+          {step === 3 && (
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', padding: '0.75rem', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '0.5rem', boxShadow: '0 2px 4px rgba(59,130,246,0.05)' }}>
+                <div style={{ background: '#3B82F6', color: 'white', padding: '0.25rem 0.5rem', borderRadius: '0.35rem', fontSize: '0.65rem', fontWeight: 'bold', letterSpacing: '0.5px' }}>TRAUMA WARD</div>
+                <div style={{ fontSize: '0.82rem', color: '#1E3A8A', fontWeight: 600 }}>Pre-arrival telemetry synced with receiving hospital.</div>
+             </div>
+          )}
+        </div>
 
         {/* Status chips */}
         <div className="hero-status-chips">
@@ -139,11 +114,6 @@ function HeroVisual() {
 
       {/* Bottom stat row */}
       <div className="hero-stat-row">
-        <div className="hero-stat-card compact">
-          <Activity size={14} color="#059669" />
-          <span className="hero-stat-label">Live Vitals</span>
-          <span className="hero-stat-value green" style={{fontSize:'1rem'}}>{heartbeat} <span style={{fontSize:'0.7rem'}}>BPM</span></span>
-        </div>
         <div className="hero-stat-card compact">
           <Radio size={14} color="#8B5CF6" />
           <span className="hero-stat-label">Responders</span>
