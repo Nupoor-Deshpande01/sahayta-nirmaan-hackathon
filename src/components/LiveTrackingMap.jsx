@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useContext } from 'react';
 import { GoogleMap, Marker, DirectionsRenderer, Polyline, InfoWindow, OverlayView } from '@react-google-maps/api';
 import { MapsLoadedContext } from '../App';
 
-const mapContainerStyle = { width: '100%', height: '340px', borderRadius: '0.75rem', border: '1px solid var(--primary-accent)' };
+const mapContainerStyle = { width: '100%', height: '340px', borderRadius: '0.75rem', border: '1px solid var(--border-color)' };
 
 // Accident origin: Pimpri-Chinchwad
 const ACCIDENT_POS = { lat: 18.6298, lng: 73.7997 };
@@ -71,7 +71,7 @@ export default function LiveTrackingMap({ routeInfo, status }) {
 
   if (!isLoaded) {
     return (
-      <div style={{ height: '340px', background: 'rgba(16,185,129,0.05)', borderRadius: '0.75rem', border: '1px solid var(--primary-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-accent)', flexDirection: 'column', gap: '0.5rem' }}>
+      <div style={{ height: '340px', background: 'rgba(0,255,255,0.02)', borderRadius: '0.75rem', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary-accent)', flexDirection: 'column', gap: '0.5rem' }}>
         <div style={{ fontSize: '1.5rem' }}>🗺️</div>
         <span style={{ fontSize: '0.9rem' }}>Loading GPS Tracker...</span>
       </div>
@@ -86,6 +86,7 @@ export default function LiveTrackingMap({ routeInfo, status }) {
         mapContainerStyle={mapContainerStyle}
         center={mapCenter}
         zoom={14}
+        mapTypeId="terrain"
         onLoad={map => { mapRef.current = map; }}
         options={{ zoomControl: true, streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
       >
@@ -141,7 +142,7 @@ export default function LiveTrackingMap({ routeInfo, status }) {
                   transition: 'font-size 0.2s',
                 }}>🏥</div>
                 <div style={{
-                  background: isNearest ? '#059669' : '#3B82F6',
+                  background: isNearest ? 'var(--primary-accent)' : '#00B27A',
                   color: '#fff',
                   fontSize: '0.58rem',
                   fontWeight: 800,

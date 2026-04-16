@@ -103,18 +103,28 @@ export default function BystanderSOS({ onExit }) {
     setStep('locating');
 
     if (navigator.geolocation) {
+      // Manual timeout fallback to prevent silent freezing
+      const geoTimeout = setTimeout(() => {
+        fetchHospitals(18.6298, 73.7997).then(() => {
+          setLocation('Pimpri-Chinchwad (GPS unavailable)');
+          startVideoAndAI();
+        });
+      }, 4000);
+
       navigator.geolocation.getCurrentPosition(async (pos) => {
+        clearTimeout(geoTimeout);
         const { latitude, longitude } = pos.coords;
         setLocation(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
         await fetchHospitals(latitude, longitude);
         startVideoAndAI();
       }, (err) => {
+        clearTimeout(geoTimeout);
         console.error('GPS Denied', err);
         fetchHospitals(18.6298, 73.7997).then(() => {
           setLocation('Pimpri-Chinchwad (GPS unavailable)');
           startVideoAndAI();
         });
-      }, { enableHighAccuracy: true });
+      }, { enableHighAccuracy: true, timeout: 3500 });
     } else {
       setLocation('Geolocation not supported');
       startVideoAndAI();

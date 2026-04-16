@@ -1,12 +1,12 @@
 :root {
-  --bg-color: #F8FAFC;
-  --bg-panel: rgba(255, 255, 255, 0.9);
-  --border-color: rgba(0, 0, 0, 0.1);
-  --primary-accent: #059669; /* Emerald Green */
-  --sos-color: #EF4444; /* Red for SOS */
-  --success-color: #10B981; 
-  --text-primary: #0F172A;
-  --text-muted: #64748B;
+  --bg-color: #FFFFFF;
+  --bg-panel: #FFFFFF;
+  --border-color: #E2E8F0; /* Soft sterile grey for grid borders */
+  --primary-accent: #00B27A; /* Clinical Sterile Green */
+  --sos-color: #DC2626; /* Darker Red matching Call Ambulance */
+  --success-color: #00B27A; /* Clinical Sterile Green */
+  --text-primary: #000000;
+  --text-muted: #808080; /* Clinical Grey */
   --glass-blur: blur(16px);
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -26,9 +26,6 @@ body {
   color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(16, 185, 129, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 90% 80%, rgba(5, 150, 105, 0.05) 0%, transparent 50%);
   min-height: 100vh;
 }
 
@@ -57,6 +54,8 @@ h1, h2, h3, h4, h5, h6 {
   padding: 1.5rem;
   box-shadow: var(--shadow-lg);
 }
+
+
 
 /* Animations */
 @keyframes pulse {

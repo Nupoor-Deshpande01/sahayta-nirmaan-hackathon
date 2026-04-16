@@ -9,7 +9,7 @@ import AdminStats from './components/AdminStats';
 import LiveLogs from './components/LiveLogs';
 import AmbulanceNavigator from './components/AmbulanceNavigator';
 import BystanderSOS from './components/BystanderSOS';
-import { Activity } from 'lucide-react';
+import { Activity, PhoneCall } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { LoadScript } from '@react-google-maps/api';
 
@@ -205,10 +205,37 @@ function App() {
                   )}
                 </div>
                 <AdminStats />
+                
+                {/* Global Call Ambulance Button */}
+                <div style={{ marginTop: '0.5rem' }}>
+                  <a href="tel:108" style={{ 
+                    background: '#DC2626', 
+                    color: '#fff', 
+                    width: '100%', 
+                    padding: '0.95rem', 
+                    textAlign: 'center', 
+                    borderRadius: '0.5rem', 
+                    fontWeight: 800, 
+                    fontSize: '1.05rem',
+                    textDecoration: 'none', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    gap: '0.5rem', 
+                    letterSpacing: '0.5px', 
+                    boxShadow: '0 4px 14px rgba(220, 38, 38, 0.4)',
+                    transition: 'transform 0.2s, background 0.2s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = '#B91C1C'}
+                  onMouseLeave={e => e.currentTarget.style.background = '#DC2626'}
+                  >
+                    <PhoneCall size={20} /> CALL AMBULANCE (108)
+                  </a>
+                </div>
               </div>
 
               <aside style={{ display: 'flex', flexDirection: 'column' }}>
-                <HospitalDashboard status={status} eta={eta} />
+                <HospitalDashboard status={status} eta={eta} socket={socket} />
                 <LiveLogs socket={socket} />
               </aside>
             </main>

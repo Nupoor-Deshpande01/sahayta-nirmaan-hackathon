@@ -2,27 +2,39 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ActivitySquare, Droplet, Clock, UserCheck, Wind, Activity, Heart, Thermometer, Timer, MapPin, Phone } from 'lucide-react';
 
 // VitalStream: simulated telemetry hook (realistic ambulance vitals stream)
-function useVitalStream(active) {
+function useVitalStream(active, socket) {
   const [vitals, setVitals] = useState({ hr: 92, spo2: 97, bp: '118/76' });
-  const intervalRef = useRef(null);
 
   useEffect(() => {
     if (active) {
-      intervalRef.current = setInterval(() => {
+      if (socket) {
+        socket.on('emergency-update', (data) => {
+          setVitals(prev => ({
+            hr: data.bpm ? Math.round(data.bpm) : Math.round(prev.hr + (Math.random() * 2 - 1)),
+            spo2: data.spo2 ? Math.round(data.spo2) : Math.round(prev.spo2 + (Math.random() > 0.5 ? 0 : -1)),
+            bp: prev.bp
+          }));
+        });
+      }
+
+      const interval = setInterval(() => {
         setVitals(prev => {
-          const hr = Math.max(60, Math.min(130, prev.hr + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 5)));
-          const spo2 = Math.max(88, Math.min(100, prev.spo2 + (Math.random() > 0.4 ? 0 : -1)));
+          const hr = Math.round(prev.hr + (Math.random() * 2 - 1));
+          const spo2 = Math.min(100, Math.round(prev.spo2 + (Math.random() > 0.5 ? 0 : -1)));
           const systolic = Math.max(90, Math.min(160, parseInt(prev.bp) + (Math.random() > 0.5 ? 2 : -2)));
           const diastolic = Math.max(60, Math.min(100, parseInt(prev.bp.split('/')[1]) + (Math.random() > 0.5 ? 1 : -1)));
           return { hr, spo2, bp: `${systolic}/${diastolic}` };
         });
       }, 1400);
+
+      return () => {
+        clearInterval(interval);
+        if (socket) socket.off('emergency-update');
+      };
     } else {
-      clearInterval(intervalRef.current);
       setVitals({ hr: 92, spo2: 97, bp: '118/76' });
     }
-    return () => clearInterval(intervalRef.current);
-  }, [active]);
+  }, [active, socket]);
 
   return vitals;
 }
@@ -38,44 +50,152 @@ function useTimeSaved(active) {
   return saved;
 }
 
-// Hook to fetch nearest hospital from backend
+// Hook to fetch nearest hospital from backend/Places API
 function useNearestHospital(active) {
   const [hospital, setHospital] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Decrement bed when assigned
+  const assignBed = () => {
+    if (hospital && hospital.availableBeds > 0) {
+      setHospital(prev => ({ ...prev, availableBeds: prev.availableBeds - 1 }));
+    }
+  };
+
   useEffect(() => {
     if (!active) return;
     setLoading(true);
-    // Use Pimpri-Chinchwad accident coordinates
-    fetch('/api/hospitals/nearest?lat=18.6298&lng=73.7997')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && data.data && data.data.length > 0) {
-          setHospital(data.data[0]);
-        } else {
-          setError('No hospitals found nearby');
-        }
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Failed to fetch hospitals:', err);
-        setError('Could not reach server');
-        setLoading(false);
-      });
+
+    let isHandled = false;
+
+    const executeFallback = () => {
+      if (isHandled) return;
+      isHandled = true;
+      fetch('/api/hospitals/nearest?lat=18.6298&lng=73.7997')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success && data.data && data.data.length > 0) setHospital(data.data[0]);
+          else setError('No hospitals found nearby');
+          setLoading(false);
+        })
+        .catch(err => { 
+          setError('Could not reach server'); 
+          setLoading(false); 
+        });
+    };
+
+    // Master timeout covering ALL async operations: GPS, Google Nearby, Google Details
+    const masterTimeout = setTimeout(() => {
+      executeFallback();
+    }, 3000);
+
+    const handleSuccess = (hospitalData) => {
+      if (isHandled) return;
+      isHandled = true;
+      clearTimeout(masterTimeout);
+      setHospital(hospitalData);
+      setLoading(false);
+    };
+
+    if (navigator.geolocation && window.google) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (isHandled) return;
+          try {
+            const loc = new window.google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+            const service = new window.google.maps.places.PlacesService(document.createElement('div'));
+            
+            service.nearbySearch({ location: loc, radius: 5000, type: ['hospital'] }, (results, status) => {
+              if (isHandled) return;
+              if (status === window.google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
+                const bestResult = results[0];
+                service.getDetails({ placeId: bestResult.place_id }, (details, detStatus) => {
+                  if (isHandled) return;
+                  if (detStatus === window.google.maps.places.PlacesServiceStatus.OK) {
+                    handleSuccess({
+                      name: details.name,
+                      phoneNumber: details.formatted_phone_number || details.international_phone_number || '+91 108',
+                      location: details.geometry.location,
+                      availableBeds: Math.floor(Math.random() * 8) + 2,
+                      ICUAvailable: true,
+                      ventilators: Math.floor(Math.random() * 4) + 1,
+                      totalVentilators: 10,
+                      bloodUnits: { 'O-': Math.floor(Math.random() * 10) },
+                      traumaRoom: 'Bay ' + Math.floor(Math.random() * 5 + 1),
+                      surgicalTeamStatus: 'Ready',
+                      traumaCenter: Math.floor(Math.random() * 4 + 1)
+                    });
+                  } else {
+                    handleSuccess({
+                      name: bestResult.name, location: bestResult.geometry.location, availableBeds: 5, ICUAvailable: true, ventilators: 2, totalVentilators: 5, traumaRoom: 'Bay 1', surgicalTeamStatus: 'Ready', phoneNumber: '108'
+                    });
+                  }
+                });
+              } else {
+                executeFallback();
+              }
+            });
+          } catch(e) {
+            executeFallback();
+          }
+        },
+        (err) => executeFallback(),
+        { timeout: 2500 }
+      );
+    } else {
+      executeFallback();
+    }
+    
+    return () => clearTimeout(masterTimeout);
   }, [active]);
 
-  return { hospital, loading, error };
+  return { hospital, loading, error, assignBed };
 }
 
-export default function HospitalDashboard({ status, eta }) {
+// Hook to calculate real ETA
+function useRealETA(active, destination) {
+  const [realEta, setRealEta] = useState(null);
+  useEffect(() => {
+    if (!active || !destination || !window.google || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(pos => {
+      const origin = new window.google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+      const matrix = new window.google.maps.DistanceMatrixService();
+      matrix.getDistanceMatrix({
+        origins: [origin],
+        destinations: [destination],
+        travelMode: 'DRIVING'
+      }, (res, stat) => {
+        if (stat === 'OK' && res.rows[0].elements[0].status === 'OK') {
+          setRealEta(res.rows[0].elements[0].duration.text);
+        }
+      });
+    });
+  }, [active, destination]);
+  return realEta;
+}
+
+export default function HospitalDashboard({ status, eta, socket }) {
   const isAlerted = ['hospital_alert', 'arrived'].includes(status);
   const isDispatched = ['dispatch', 'green_corridor', 'hospital_alert', 'arrived'].includes(status);
   const isGreenCorridorActive = ['green_corridor', 'hospital_alert', 'arrived'].includes(status);
 
-  const vitals = useVitalStream(isDispatched);
+  const vitals = useVitalStream(isDispatched, socket);
   const timeSaved = useTimeSaved(isGreenCorridorActive);
-  const { hospital, loading, error } = useNearestHospital(isDispatched);
+  const { hospital, loading, error, assignBed } = useNearestHospital(isDispatched);
+  const realEta = useRealETA(isDispatched, hospital?.location);
+
+  const [victimProfile, setVictimProfile] = useState({
+    id: 'IN-9482-11',
+    bloodType: 'O-Negative',
+    allergies: 'Penicillin',
+    isEditing: true // Starts open to represent the 'SOS Form' input
+  });
+
+  // Assign bed logic simulation
+  useEffect(() => {
+    if (isAlerted) assignBed();
+  }, [isAlerted]);
 
   const spo2Color = vitals.spo2 >= 95 ? 'var(--success-color)' : vitals.spo2 >= 90 ? '#F59E0B' : '#EF4444';
   const hrColor = vitals.hr < 100 ? 'var(--success-color)' : vitals.hr < 120 ? '#F59E0B' : '#EF4444';
@@ -135,7 +255,7 @@ export default function HospitalDashboard({ status, eta }) {
           {/* ETA Display */}
           <div className="eta-display">
             <div className="metric-label">Estimated Time of Arrival</div>
-            <h2>{eta} <span style={{ fontSize: '1.25rem', color: 'var(--text-muted)' }}>MIN</span></h2>
+            <h2>{realEta || eta} <span style={{ fontSize: '1.25rem', color: 'var(--text-muted)' }}>{realEta ? '' : 'MIN'}</span></h2>
           </div>
 
           {/* HospTrack: Resource Status — REAL DATA */}
@@ -147,7 +267,7 @@ export default function HospitalDashboard({ status, eta }) {
             </div>
             <div className="hosptrack-grid">
               <div className="hosptrack-card">
-                <div className="hosptrack-icon"><Wind size={18} color="#3B82F6" /></div>
+                <div className="hosptrack-icon"><Wind size={18} color="var(--primary-accent)" /></div>
                 <div>
                   <div className="hosptrack-value">
                     {ventilators}<span className="hosptrack-total">/{totalVentilators}</span>
@@ -222,30 +342,58 @@ export default function HospitalDashboard({ status, eta }) {
             </div>
           )}
 
-          {/* Patient Info — shown once hospital is alerted */}
-          <div className="patient-info" style={{ opacity: isAlerted ? 1 : 0.4, transition: 'opacity 0.5s' }}>
-            <div className="patient-header">
-              <UserCheck size={18} /> Victim Analytics (Synced)
+          {/* Patient Info — populated via SOS Form */}
+          <div className="patient-info" style={{ opacity: isAlerted ? 1 : 0.6, transition: 'opacity 0.5s' }}>
+            <div className="patient-header" style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <span><UserCheck size={18} /> Victim Analytics (Synced)</span>
+              <button 
+                onClick={() => setVictimProfile({...victimProfile, isEditing: !victimProfile.isEditing})}
+                style={{ background: 'none', border: 'none', color: 'var(--primary-accent)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+              >
+                {victimProfile.isEditing ? 'Save' : 'Edit'}
+              </button>
             </div>
-            <div className="info-row">
-              <span style={{ color: 'var(--text-muted)' }}>Health ID</span>
-              <span>IN-9482-11</span>
-            </div>
-            <div className="info-row">
-              <span style={{ color: 'var(--text-muted)' }}>Blood Type</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <Droplet size={14} color="#EF4444" /> O-Negative
-              </span>
-            </div>
-            <div className="info-row">
-              <span style={{ color: 'var(--text-muted)' }}>Allergies</span>
-              <span>Penicillin</span>
-            </div>
-            {hospital && (
-              <div className="info-row">
-                <span style={{ color: 'var(--text-muted)' }}>Receiving Hospital</span>
-                <span style={{ color: 'var(--primary-accent)', fontWeight: 600, fontSize: '0.8rem' }}>{hospital.name}</span>
+            {victimProfile.isEditing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SOS Form Input</div>
+                <input 
+                  type="text" 
+                  value={victimProfile.bloodType} 
+                  onChange={e => setVictimProfile({...victimProfile, bloodType: e.target.value})}
+                  placeholder="Blood Type"
+                  style={{ padding: '0.4rem', borderRadius: '4px', background: '#1E293B', color: '#fff', border: '1px solid #334155' }}
+                />
+                <input 
+                  type="text" 
+                  value={victimProfile.allergies} 
+                  onChange={e => setVictimProfile({...victimProfile, allergies: e.target.value})}
+                  placeholder="Allergies"
+                  style={{ padding: '0.4rem', borderRadius: '4px', background: '#1E293B', color: '#fff', border: '1px solid #334155' }}
+                />
               </div>
+            ) : (
+              <>
+                <div className="info-row">
+                  <span style={{ color: 'var(--text-muted)' }}>Health ID</span>
+                  <span>{victimProfile.id}</span>
+                </div>
+                <div className="info-row">
+                  <span style={{ color: 'var(--text-muted)' }}>Blood Type</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Droplet size={14} color="#EF4444" /> {victimProfile.bloodType}
+                  </span>
+                </div>
+                <div className="info-row">
+                  <span style={{ color: 'var(--text-muted)' }}>Allergies</span>
+                  <span>{victimProfile.allergies}</span>
+                </div>
+                {hospital && (
+                  <div className="info-row">
+                    <span style={{ color: 'var(--text-muted)' }}>Receiving Hospital</span>
+                    <span style={{ color: 'var(--primary-accent)', fontWeight: 600, fontSize: '0.8rem' }}>{hospital.name}</span>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </>
