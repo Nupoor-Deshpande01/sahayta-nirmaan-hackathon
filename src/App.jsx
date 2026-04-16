@@ -9,6 +9,7 @@ import AdminStats from './components/AdminStats';
 import LiveLogs from './components/LiveLogs';
 import AmbulanceNavigator from './components/AmbulanceNavigator';
 import BystanderSOS from './components/BystanderSOS';
+import ResponderAuth from './components/ResponderAuth';
 import { Activity, PhoneCall } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { LoadScript } from '@react-google-maps/api';
@@ -33,8 +34,18 @@ function App() {
   const [eta, setEta] = useState('--');
   const [routeInfo, setRouteInfo] = useState(null);
   const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [responderInfo, setResponderInfo] = useState(null);
+  const [showAuth, setShowAuth] = useState(false);
 
   useEffect(() => {
+    // Check for saved responder info
+    const saved = localStorage.getItem('sahayta_responder');
+    if (saved) {
+      setResponderInfo(JSON.parse(saved));
+    } else {
+      setShowAuth(true);
+    }
+
     socket.on('new_sos', (data) => console.log('🟢 [Socket] New Emergency Broadcast:', data));
     socket.on('green_corridor_active', (data) => {
        console.log('🟢 [Socket] Green Corridor Active:', data);
@@ -96,7 +107,14 @@ function App() {
       const sosRes = await fetch('/api/sos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: '603d2bafb9c32b50901abccd', latitude: 18.6298, longitude: 73.7997, accidentSeverity: 'High' })
+        body: JSON.stringify({ 
+          userId: '603d2bafb9c32b50901abccd', 
+          latitude: 18.6298, 
+          longitude: 73.7997, 
+          accidentSeverity: 'High',
+          witnessName: responderInfo?.name || 'Anonymous Responder',
+          witnessPhone: responderInfo?.phone || 'Unknown'
+        })
       });
       const sosData = await sosRes.json();
       console.log('Backend response (SOS assigned):', sosData);
@@ -120,6 +138,11 @@ function App() {
     setRouteInfo(null);
   };
 
+  const handleAuthComplete = (data) => {
+    setResponderInfo(data);
+    setShowAuth(false);
+  };
+
   return (
     // Single LoadScript at the ROOT wraps the entire app — no component-level useJsApiLoader calls
     <LoadScript
@@ -129,6 +152,7 @@ function App() {
       loadingElement={<div />}
     >
       <MapsLoadedContext.Provider value={mapsLoaded}>
+        {showAuth && <ResponderAuth onComplete={handleAuthComplete} />}
         {view === 'landing' && (
           <LandingPage onLaunch={() => setView('dashboard')} onLaunchHUD={() => setView('navigator')} onLaunchSOS={() => setView('sos')} />
         )}
