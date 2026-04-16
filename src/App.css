@@ -751,3 +751,27 @@
   border-radius: 2rem;
   animation: slideIn 0.3s ease;
 }
+.btn-call-hospital {
+  background: var(--success-color);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s;
+}
+
+.btn-call-hospital:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.4);
+  background: #059669;
+}
+
+.btn-call-hospital:active {
+  transform: translateY(0);
+}

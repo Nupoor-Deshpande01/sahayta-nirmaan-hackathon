@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ActivitySquare, Droplet, Clock, UserCheck, Wind, Activity, Heart, Thermometer, Timer, MapPin } from 'lucide-react';
+import { ActivitySquare, Droplet, Clock, UserCheck, Wind, Activity, Heart, Thermometer, Timer, MapPin, Phone } from 'lucide-react';
 
 // VitalStream: simulated telemetry hook (realistic ambulance vitals stream)
 function useVitalStream(active) {
@@ -92,21 +92,42 @@ export default function HospitalDashboard({ status, eta }) {
 
   return (
     <div className="glass-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '1rem', overflowY: 'auto' }}>
-      <div>
-        <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <ActivitySquare color="var(--primary-accent)" />
-          Hospital Command
-        </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-          {isDispatched ? (
-            <>
-              <MapPin size={13} color="var(--primary-accent)" />
-              {loading ? 'Finding nearest hospital...' : error ? 'Could not locate hospital' : hospitalName}
-            </>
-          ) : (
-            'Pre-arrival Dashboard'
-          )}
-        </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <ActivitySquare color="var(--primary-accent)" />
+            Hospital Command
+          </h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', marginTop: '0.25rem' }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+              {isDispatched ? (
+                <>
+                  <MapPin size={13} color="var(--primary-accent)" />
+                  {loading ? 'Finding nearest hospital...' : error ? 'Could not locate hospital' : hospitalName}
+                </>
+              ) : (
+                'Pre-arrival Dashboard'
+              )}
+            </p>
+            {isDispatched && hospital && hospital.phoneNumber && (
+              <p style={{ color: 'var(--primary-accent)', fontSize: '0.8rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                <Phone size={12} />
+                {hospital.phoneNumber}
+              </p>
+            )}
+          </div>
+        </div>
+        
+        {isDispatched && hospital && (
+          <a 
+            href={`tel:${hospital.phoneNumber}`}
+            className="btn-call-hospital"
+            title="Call Trauma Center"
+          >
+            <Phone size={18} />
+            <span>Call</span>
+          </a>
+        )}
       </div>
 
       {status !== 'idle' ? (

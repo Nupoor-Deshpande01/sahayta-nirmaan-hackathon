@@ -54,7 +54,7 @@ const PORT = process.env.PORT || 3000;
 
 if (process.env.NODE_ENV !== 'production' || process.env.RENDER) {
   server.listen(PORT, () => {
-    console.log(`RescueLink Backend Server running on port ${PORT}`);
+    console.log(`Sahayta Backend Server running on port ${PORT}`);
   });
 }
 

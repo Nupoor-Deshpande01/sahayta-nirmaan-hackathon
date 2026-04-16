@@ -17,6 +17,7 @@ const SEED_HOSPITALS = [
     traumaRoom: 'Bay 1',
     surgicalTeamStatus: 'Ready',
     traumaCenter: 1,
+    phoneNumber: '+91 20 6733 2000',
   },
   {
     name: 'Aditya Birla Memorial Hospital',
@@ -30,6 +31,7 @@ const SEED_HOSPITALS = [
     traumaRoom: 'Bay 2',
     surgicalTeamStatus: 'Ready',
     traumaCenter: 2,
+    phoneNumber: '+91 20 3071 7500',
   },
   {
     name: 'Jehangir Hospital Chinchwad',
@@ -43,6 +45,7 @@ const SEED_HOSPITALS = [
     traumaRoom: 'Bay 3',
     surgicalTeamStatus: 'Standby',
     traumaCenter: 3,
+    phoneNumber: '+91 20 6681 1000',
   },
   {
     name: 'Dr. D.Y. Patil Medical College & Hospital',
@@ -56,6 +59,7 @@ const SEED_HOSPITALS = [
     traumaRoom: 'Bay 4',
     surgicalTeamStatus: 'Ready',
     traumaCenter: 4,
+    phoneNumber: '+91 20 2780 5000',
   },
   {
     name: 'Lokmanya Hospital Chinchwad',
@@ -69,6 +73,7 @@ const SEED_HOSPITALS = [
     traumaRoom: 'Bay 1',
     surgicalTeamStatus: 'Busy',
     traumaCenter: 5,
+    phoneNumber: '+91 20 3003 3000',
   },
 ];
 

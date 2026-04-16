@@ -73,7 +73,7 @@ export default function ControlPanel({ status, onSos, onReset }) {
       <div>
         <h2 style={{ marginBottom: '0.5rem' }}>Emergency Control</h2>
         <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          Simulate a real-time medical emergency to trigger the RescueLink system.
+          Simulate a real-time medical emergency to trigger the Sahayta system.
         </p>
       </div>
 

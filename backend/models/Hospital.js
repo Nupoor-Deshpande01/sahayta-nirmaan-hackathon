@@ -24,6 +24,7 @@ const HospitalSchema = new mongoose.Schema({
   traumaRoom: { type: String, default: '' },
   surgicalTeamStatus: { type: String, enum: ['Ready', 'Busy', 'Standby'], default: 'Standby' },
   traumaCenter: { type: Number, default: 1 }, // e.g. Trauma Center #4
+  phoneNumber: { type: String, default: '+91 20 6733 2222' },
 });
 
 HospitalSchema.index({ location: '2dsphere' });

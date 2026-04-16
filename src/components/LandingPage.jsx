@@ -211,7 +211,7 @@ export default function LandingPage({ onLaunch, onLaunchHUD, onLaunchSOS }) {
           <div className="tagline">Capabilities</div>
           <h2 className="section-title">Four Systems. One Mission.</h2>
           <p className="section-subtitle">
-            RescueLink integrates sensor intelligence, AI routing, hospital coordination, and community response into a unified emergency platform.
+            Sahayta integrates sensor intelligence, AI routing, hospital coordination, and community response into a unified emergency platform.
           </p>
         </div>
         <div className="features-grid">
@@ -236,7 +236,7 @@ export default function LandingPage({ onLaunch, onLaunchHUD, onLaunchSOS }) {
           <div className="tagline">Why It Matters</div>
           <h2 className="section-title">Real-World Impact</h2>
           <p className="section-subtitle">
-            India loses 150,000+ lives annually to road accidents. Most are preventable with faster EMS response. RescueLink directly addresses the systemic gaps.
+            India loses 150,000+ lives annually to road accidents. Most are preventable with faster EMS response. Sahayta directly addresses the systemic gaps.
           </p>
         </div>
         <div className="impact-grid">

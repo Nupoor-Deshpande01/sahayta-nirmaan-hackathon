@@ -1,4 +1,4 @@
-# Sahayta (RescueLink) Backend MVP
+# Sahayta Backend MVP
 
 This is the full-stack backend built using Node.js, Express, MongoDB, and Socket.io. It supports the core Sahayta platform features (SOS triggering, hospital matching, smart routing simulation, and live real-time sockets).
 
